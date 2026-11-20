@@ -3,12 +3,14 @@
 import '../shared/zodSetup.ts';
 import { CONTENT_SCRIPT_SOURCE, pageHookMessageSchema, type ContentScriptMessage } from '../shared/messages.ts';
 import { AdvertPanel, advertIdFromPath } from './advertPanel.ts';
+import { QuickSortBar } from './quickSortBar.ts';
 import { SearchTable } from './searchTable.ts';
 
 const ADDRESS_CHECK_INTERVAL_MS = 700;
 
 const searchTable = new SearchTable();
 const advertPanel = new AdvertPanel();
+const quickSortBar = new QuickSortBar();
 
 window.addEventListener('message', (event: MessageEvent<unknown>) => {
   if (event.source !== window) return;
@@ -46,6 +48,8 @@ document.addEventListener('keydown', (event) => {
 
 let lastPathname: string | null = null;
 function followAddressChanges(): void {
+  // Cheap when nothing changed; puts the bar back if the page redrew.
+  quickSortBar.update().catch((error: unknown) => console.warn('[Autotrader Fast] quick sort', error));
   if (location.pathname === lastPathname) return;
   lastPathname = location.pathname;
   const advertId = advertIdFromPath(location.pathname);

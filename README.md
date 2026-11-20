@@ -2,6 +2,8 @@
 
 A Chrome extension for Greg's own car hunting on [autotrader.co.uk](https://www.autotrader.co.uk):
 
+- **Quick sort** buttons above Autotrader's results (Cheapest, Nearest, Lowest miles, Newest, Just listed,
+  Best match), plus an optional default order applied to every search that doesn't choose one.
 - **Fast table** on search results: every car in the search in one sortable, filterable table, with
   performance, running costs and history filled in, price drops tracked and new cars marked.
 - **At a glance** panel on each advert, so there's no need to open "View all spec and features".
@@ -45,6 +47,12 @@ the `dist` folder. After pulling changes, run `npm run build` again and press th
   0.35 s apart). The data is only used when its `advertData.id` matches the advert asked for (after
   in-app navigation the open page can still hold the previous advert's data); if Autotrader ever stops
   sending that id, every advert will fail to load and `lookUpAdvertFromHtml` is where to change it.
+- **Quick sort.** `quickSortBar.ts` sets Autotrader's own `sort` address parameter (values in `sortOrders.ts`,
+  taken from the live "Filter and sort" dialog), so the sorting is done by Autotrader across the whole
+  search. A default order is stored in `chrome.storage.local`; a search with no `sort` is redirected once
+  (the tab's `sessionStorage` remembers it, so it can never loop; the same memory means a search Greg deliberately
+  sets back to Best match in Autotrader's own dialog isn't re-sorted in that tab). A default of Best match
+  needs no redirect: it is Autotrader's own order.
 - **Registration.** Autotrader's data never includes the reg. `findRegistrationInDescription` looks for one
   in the seller's description; otherwise the person types it.
 - **MOT history.** The background worker fetches
