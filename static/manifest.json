@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "Autotrader Fast Search + MOT Check",
+  "version": "1.0.0",
+  "description": "Sortable all-results table for Autotrader searches, spec at a glance, price-drop tracking and a Red/Amber/Green MOT history summary.",
+  "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+  "action": { "default_title": "Autotrader Fast Search: open the help page" },
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://www.autotrader.co.uk/*",
+    "https://www.check-mot.service.gov.uk/*"
+  ],
+  "background": { "service_worker": "serviceWorker.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://www.autotrader.co.uk/*"],
+      "js": ["pageHook.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://www.autotrader.co.uk/*"],
+      "js": ["contentScript.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.check-mot.service.gov.uk/results*"],
+      "js": ["motResultsPage.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+  }
+}

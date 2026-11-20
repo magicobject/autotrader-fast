@@ -1,0 +1,30 @@
+{
+  "name": "autotrader-fast",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chrome extension: a fast sortable table for Autotrader searches, spec at a glance, price-drop tracking and a Red/Amber/Green summary of a car's MOT history.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run typecheck && vitest run && npm run build",
+    "audit": "npm audit --audit-level=high",
+    "package": "npm run build && node scripts/package.mjs",
+    "prepare": "git config core.hooksPath .githooks",
+    "test:e2e": "npm run build && playwright test"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/chrome": "^0.3.7",
+    "@types/node": "^26.6.6",
+    "axe-core": "^4.14.1",
+    "esbuild": "^0.28.2",
+    "jsdom": "^31.0.1",
+    "prettier": "^3.10.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1"
+  }
+}

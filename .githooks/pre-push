@@ -1,0 +1,6 @@
+#!/bin/sh
+# Run the full test suite (type check, unit tests, build) and the dependency audit before any push.
+set -e
+npm test
+npm run test:e2e
+npm run audit
