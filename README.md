@@ -20,12 +20,19 @@ You need Node.js 22 or later.
 
 ```bash
 cd C:\Users\magic\github\autotrader-fast   # or wherever the repo is
-npm install
+npm ci
 npm run build
 ```
 
+Use `npm ci`, not `npm install`. It installs exactly what `package-lock.json` lists and never rewrites
+that file. npm on Windows tidies the lockfile differently from npm on Linux, so `npm install` leaves it
+modified, and the next `git pull` then refuses to run. If that has already happened,
+`git checkout package-lock.json` puts it back. (Use `npm install <package>` only when deliberately adding
+or upgrading a dependency.)
+
 Then in Chrome: open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose
-the `dist` folder. After pulling changes, run `npm run build` again and press the ↻ on the extension's card.
+the `dist` folder. After pulling changes, run `npm ci` and `npm run build` again and press the ↻ on the
+extension's card.
 
 `npm run package` also writes `autotrader-fast-<version>.zip` (the contents of `dist/`) for passing on.
 

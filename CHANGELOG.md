@@ -2,6 +2,10 @@
 
 Every build, newest first. Each entry is tagged `build-<build>` in git.
 
+## 2026.11.20.005 · Greg Wright · 20 Nov 2026
+
+Install with `npm ci`, not `npm install`. On Windows `npm install` rewrote `package-lock.json`, which then stopped `git pull` from running. See [README.md](README.md#install-on-a-computer).
+
 ## 2026.11.20.004 · Greg Wright · 20 Nov 2026
 
 At a glance moves into the advert page, and the MOT check now works (version 1.2.0).
