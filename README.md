@@ -93,10 +93,12 @@ npm run test:e2e   # loads the built extension into Chrome against made-up pages
 npm run audit      # npm audit, high and above
 ```
 
-The pre-push hook runs all three. `test:e2e` needs a Chrome that still allows `--load-extension`
-(Chrome for Testing, or Chromium; branded Chrome stopped allowing it in version 137): set `CHROME_PATH`
-if it isn't at `/usr/bin/google-chrome`. It serves the fixture pages through Playwright routes,
-including the background worker's GOV.UK request. Tests use made-up data shaped like the live sites (see `test/fixtures/`);
+The pre-push hook runs all three. `test:e2e` runs in Playwright's own Chromium (pinned to the same
+Playwright version as echo, so browsers already downloaded on Greg's machine are reused; otherwise run
+`npx playwright install chromium` once). Branded Google Chrome can't be used: since version 137 it refuses
+to load unpacked extensions from the command line. To use another Chromium-based browser, set
+`CHROME_PATH`. It serves the fixture pages through Playwright routes, including the background worker's
+GOV.UK request. Tests use made-up data shaped like the live sites (see `test/fixtures/`);
 nothing in the test suite contacts Autotrader or GOV.UK.
 
 **After a change that touches the pages' data**, check by hand on the live sites with the built extension:

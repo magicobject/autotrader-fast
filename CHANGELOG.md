@@ -2,6 +2,10 @@
 
 Every build, newest first. Each entry is tagged `build-<build>` in git.
 
+## 2026.11.20.003 · Greg Wright · 20 Nov 2026
+
+The end-to-end tests now run on Windows. They had looked for Chrome at a Linux path (`/usr/bin/google-chrome`) and failed on Greg's PC before any test ran. They now use Playwright's own Chromium (branded Chrome no longer loads unpacked extensions), with Playwright pinned to 1.65.0 like echo so the browsers already downloaded are reused. `CHROME_PATH` still selects another browser. See [test/e2e/extension.spec.ts](test/e2e/extension.spec.ts), [playwright.config.ts](playwright.config.ts) and [README.md](README.md#developing).
+
 ## 2026.11.20.002 · Greg Wright · 20 Nov 2026
 
 One-click sorting on Autotrader's search results (version 1.1.0).

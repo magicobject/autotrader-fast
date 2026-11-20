@@ -38,8 +38,11 @@ let context: BrowserContext;
 
 test.beforeAll(async () => {
   process.env['PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS'] = '1';
+  // Playwright's own Chromium allows loading an unpacked extension (branded Chrome no longer does).
+  // CHROME_PATH points at another Chromium-based browser instead, e.g. where Playwright's isn't installed.
+  const chromePath = process.env['CHROME_PATH'];
   context = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), 'atfast-')), {
-    executablePath: process.env['CHROME_PATH'] ?? '/usr/bin/google-chrome',
+    ...(chromePath ? { executablePath: chromePath } : { channel: 'chromium' }),
     headless: true,
     args: [`--disable-extensions-except=${EXTENSION_FOLDER}`, `--load-extension=${EXTENSION_FOLDER}`],
   });
@@ -84,7 +87,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await context.close();
+  await context?.close(); // undefined if the browser never started; the real error is reported above
 });
 
 test('adds the MOT summary to the GOV.UK results page, cross-checked against the advert', async () => {
