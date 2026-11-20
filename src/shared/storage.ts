@@ -9,7 +9,8 @@ import { epochMsSchema, nowEpochMs, registrationSchema, type AdvertId, type Epoc
 import { MILLISECONDS_PER_DAY } from './numbers.ts';
 
 const ADVERT_DETAILS_MAX_AGE_MS = 3 * MILLISECONDS_PER_DAY;
-const MOT_SUMMARY_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+/** MOT summaries come from GOV.UK pages Greg opened; a month later a new test may be due. */
+const MOT_SUMMARY_MAX_AGE_MS = 30 * MILLISECONDS_PER_DAY;
 const FORGET_UNSEEN_ADVERTS_AFTER_MS = 120 * MILLISECONDS_PER_DAY;
 
 const storageKeys = {
@@ -124,6 +125,19 @@ export async function readMotSummary(registration: Registration): Promise<Cached
 
 export async function writeMotSummary(registration: Registration, cached: CachedMotSummary): Promise<void> {
   await writeStored(storageKeys.motSummary(registration), cached);
+}
+
+/** Calls back whenever a GOV.UK tab saves a summary for this registration. Returns a way to stop. */
+export function onMotSummarySaved(registration: Registration, callback: (cached: CachedMotSummary) => void): () => void {
+  const key = storageKeys.motSummary(registration);
+  const listener = (changes: Record<string, chrome.storage.StorageChange>, areaName: string): void => {
+    const change = changes[key];
+    if (areaName !== 'local' || change === undefined) return;
+    const parsed = cachedMotSummarySchema.safeParse(change.newValue);
+    if (parsed.success) callback(parsed.data);
+  };
+  chrome.storage.onChanged.addListener(listener);
+  return () => chrome.storage.onChanged.removeListener(listener);
 }
 
 // ---- interface preferences ---------------------------------------------------------------------

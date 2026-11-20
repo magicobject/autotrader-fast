@@ -55,7 +55,7 @@ describe('pruneExpiredStorage', () => {
   it('removes expired MOT summaries and keeps everything else, including typed registrations', async () => {
     const stored = installChromeStorageStub();
     const summary = { overall: 'green', findings: [], testCount: 0, failedTestCount: 0, registrationShown: 'ZZ99 ZZZ', makeAndModel: 'X' };
-    stored.set('v1:mot-summary:OLD1ABC', { checkedAtMs: at(2), advertisedMileage: null, summary });
+    stored.set('v1:mot-summary:OLD1ABC', { checkedAtMs: at(40), advertisedMileage: null, summary });
     stored.set('v1:mot-summary:NEW1ABC', { checkedAtMs: at(0), advertisedMileage: null, summary });
     stored.set('v1:registration:111111', 'AB12CDE');
     stored.set('v1:registration:222222', 'CD34EFG');

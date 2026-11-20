@@ -8,7 +8,7 @@ import { readPriceHistory, recordSearchVisit, savePriceHistory, type PriceHistor
 import { RAG_LABEL } from '../mot/motSummaryCard.ts';
 import type { MotSummary, RagLevel } from '../mot/motHistoryTypes.ts';
 import type { AdvertDetails } from './advertDetails.ts';
-import { checkMotHistory, fetchAdvert, readCachedAdvertDetails, readCachedMotSummary, readSavedRegistration } from './advertLookup.ts';
+import { fetchAdvert, readCachedAdvertDetails, readCachedMotSummary, readSavedRegistration } from './advertLookup.ts';
 import { parseSearchListings, type SearchListing } from './searchListings.ts';
 import { filtersPartOf } from './searchRequest.ts';
 import { csvField } from '../shared/csv.ts';
@@ -17,7 +17,6 @@ const DEFAULT_PAGE_LIMIT = 30;
 const DELAY_BETWEEN_RESULT_PAGES_MS = 600;
 const DELAY_BETWEEN_ADVERT_FETCHES_MS = 350;
 const SIMULTANEOUS_ADVERT_FETCHES = 2;
-const DELAY_BETWEEN_MOT_CHECKS_MS = 1200;
 const PRICE_HISTORY_SAVE_DELAY_MS = 1000;
 const LOAD_SILENCE_LIMIT_MS = 20_000;
 
@@ -292,7 +291,7 @@ const TABLE_COLUMNS: readonly TableColumn[] = [
   {
     id: 'mot',
     heading: 'MOT',
-    explanation: 'MOT history summary (needs the reg)',
+    explanation: 'MOT history summary, for cars you have checked on GOV.UK from their advert',
     sortValue: (row) => (row.motSummary ? RAG_SORT_ORDER[row.motSummary.overall] : null),
     firstSortDirection: ASCENDING,
     renderCell: (row) =>
@@ -354,7 +353,7 @@ export class SearchTable {
   private renderTimer: ReturnType<typeof setTimeout> | undefined;
   private sortColumnId: string | null = null;
   private sortDirection: SortDirection = ASCENDING;
-  private activeTask: 'loading-pages' | 'fetching-specs' | 'checking-mots' | null = null;
+  private activeTask: 'loading-pages' | 'fetching-specs' | null = null;
   private readonly filters: TableFilters = {
     words: '',
     maxPriceGbp: '',
@@ -528,7 +527,6 @@ export class SearchTable {
       ),
       pageLimitInput,
       button('Get specs', 'Fill in performance, running costs and history for the cars shown', () => void this.fetchSpecsForShownCars()),
-      button('MOT check', 'Check the MOT history of shown cars whose reg is known', () => void this.checkMotsForShownCars()),
       textFilter('words', 'Filter words, -exclude', 170),
       textFilter('maxPriceGbp', 'Max £', 80),
       textFilter('maxMileage', 'Max miles', 80),
@@ -676,7 +674,7 @@ export class SearchTable {
     );
   }
 
-  /** How the last Load / Get specs / MOT check ended, kept on show until the next one starts. */
+  /** How the last Load or Get specs ended, kept on show until the next one starts. */
   private lastTaskOutcome: string | null = null;
 
   private showStatus(text: string): void {
@@ -791,35 +789,6 @@ export class SearchTable {
     await Promise.all(Array.from({ length: SIMULTANEOUS_ADVERT_FETCHES }, fetchNextUntilDone));
     this.activeTask = null;
     this.showTaskOutcome(`Specs done for ${doneCount} cars` + (failedCount ? `, ${failedCount} failed` : ''));
-  }
-
-  private async checkMotsForShownCars(): Promise<void> {
-    if (this.activeTask !== null) return;
-    const waiting = this.shownRows().filter((row) => row.registration !== null && row.motSummary === null);
-    if (waiting.length === 0) {
-      return this.showStatus('No regs known yet. Get specs first (regs come from seller descriptions), or add one on an advert page.');
-    }
-    this.activeTask = 'checking-mots';
-    let checkedCount = 0;
-    for (const row of waiting) {
-      checkedCount++;
-      if (row.registration === null) continue;
-      this.showStatus(`MOT ${checkedCount}/${waiting.length} · ${row.registration}`);
-      try {
-        row.motSummary = await checkMotHistory({
-          registration: row.registration,
-          advertisedMileage: row.listing.mileage,
-          advertisedMake: row.details?.make ?? null,
-          isRefreshForced: false,
-        });
-      } catch {
-        // leave this car without a summary; the advert page shows the reason
-      }
-      this.scheduleRender();
-      await sleep(DELAY_BETWEEN_MOT_CHECKS_MS);
-    }
-    this.activeTask = null;
-    this.showTaskOutcome(`MOT checked for ${waiting.length} cars`);
   }
 
   private downloadCsv(): void {

@@ -48,13 +48,14 @@ function testHtml(test: FixtureTest, index: number): string {
 
 /** Tests are given newest first, as GOV.UK lists them. */
 export function motHistoryPageHtml(options: {
+  readonly registrationShown?: string;
   readonly makeAndModel?: string;
   readonly registered?: string;
   readonly motDue?: string;
   readonly tests: readonly FixtureTest[];
 }): string {
   return `<!doctype html><html><body><main>
-    <span data-test-id="vehicle-registration" class="dvsa-vrm">ZZ99 ZZZ</span>
+    <span data-test-id="vehicle-registration" class="dvsa-vrm">${options.registrationShown ?? 'ZZ99 ZZZ'}</span>
     <h1 data-test-id="vehicle-make-model">${options.makeAndModel ?? 'MAZDA MX-5'}</h1>
     <span data-test-id="vehicle-date-registered">${options.registered ?? '30 June 2016'}</span>
     ${options.motDue ? `<span data-test-id="mot-due-date">${options.motDue}</span>` : ''}

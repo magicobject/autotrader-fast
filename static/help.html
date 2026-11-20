@@ -36,13 +36,13 @@
   <li><strong>Get specs</strong> fills in power (BHP), 0–62, top speed, torque, miles per gallon, insurance group, road tax, number of owners, gearbox, body style, service history and Autotrader's basic history check for the cars you can see. It takes about a quarter of a second per car, so filter first. It remembers specs for three days.</li>
   <li>Click any column heading to sort by it, and click again to reverse.</li>
   <li><strong>New</strong> shows only cars that weren't there last time. The <strong>Δ£</strong> column shows how much a price has changed since you first saw the car (hover over it for the full history). <strong>Price drops</strong> shows only cars that have come down.</li>
-  <li><strong>MOT check</strong> colours the MOT column for every car whose registration is known (see below).</li>
+  <li>The <strong>MOT</strong> column shows the colour for every car you have checked on GOV.UK from its advert (see below).</li>
   <li><strong>CSV</strong> downloads what you can see as a spreadsheet file.</li>
 </ol>
 
 <h2 id="advert">Looking at an advert</h2>
-<p>A panel called <strong>At a glance</strong> appears on the right with the performance figures, running costs and history, so there is no need to open "View all spec and features". The <strong>–</strong> button folds it away; it stays folded until you open it again.</p>
-<p>To check the MOT history, the extension needs the registration. Autotrader doesn't publish it. If the seller wrote it in the description, the extension finds it for you. Otherwise read it from the photos, type it into the yellow box and press <strong>Check</strong>. It remembers the registration for that advert.</p>
+<p>A section called <strong>At a glance</strong> appears in the advert, just above Autotrader's "Overview", with the MOT summary, performance figures, running costs and history, so there is no need to open "View all spec and features". Click its title to fold it up; it stays folded on other adverts until you open it again. Once a car's MOT has been checked, its colour also shows next to the title, so you can see it even when the section is folded.</p>
+<p>To check the MOT history, the extension needs the registration. Autotrader doesn't publish it. If the seller wrote it in the description, the extension finds it for you. Otherwise read it from the photos and type it into the yellow box. Then press <strong>Check on GOV.UK</strong>: the GOV.UK MOT history opens in a new tab, and as soon as it has loaded the summary appears both there and back on the advert. (GOV.UK only shows the history to a person's own browser tab, which is why it opens a tab rather than fetching it quietly.) The extension remembers the registration and the summary for that car, for a month.</p>
 
 <h2 id="mot">The MOT colours</h2>
 <p>The extension reads the car's public MOT history from GOV.UK and lists every concern with its date, so you can judge for yourself. The colour is a quick summary.</p>
@@ -68,10 +68,10 @@
 <p>If you open a car's page on the GOV.UK MOT history site yourself, the same summary appears at the top of it.</p>
 
 <h2 id="privacy">What it keeps, and where</h2>
-<p>Everything stays in Chrome on this computer: the specs it has read (for three days), the prices it has seen (cars not seen for four months are forgotten), the registrations you've typed in, and MOT summaries (for twelve hours). It doesn't send anything anywhere except to Autotrader and GOV.UK, the same pages you would open yourself. It reads Autotrader at a gentle pace and is meant for your own use while you browse.</p>
+<p>Everything stays in Chrome on this computer: the specs it has read (for three days), the prices it has seen (cars not seen for four months are forgotten), the registrations you've typed in, and MOT summaries (for a month). It sends nothing anywhere: it only reads Autotrader as you browse, and the GOV.UK pages you open. It reads Autotrader at a gentle pace and is meant for your own use while you browse.</p>
 
 <h2 id="problems">If something stops working</h2>
-<p>Autotrader and GOV.UK change their pages from time to time. If the table stays empty, the panel says it can't read an advert, or the MOT check fails, the extension probably needs updating for the new page layout. The person who looks after it will find notes in the project's README.</p>
+<p>Autotrader and GOV.UK change their pages from time to time. If the table stays empty, At a glance says it can't read an advert, or no summary appears on a GOV.UK MOT page, the extension probably needs updating for the new page layout. The person who looks after it will find notes in the project's README.</p>
 </main>
 </body>
 </html>

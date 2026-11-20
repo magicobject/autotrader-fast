@@ -8,6 +8,8 @@ Chrome Web Store and not a MediaWright product: keep the repo private, and don't
 It reads Autotrader's pages as Greg browses them, at a gentle pace; keep it that way (no background
 crawling, no scheduled scraping, no sharing the data), because Autotrader's terms limit use of their
 content to personal, non-commercial use.
+GOV.UK's MOT service is behind bot protection: never fetch it from the extension or work around that
+protection. MOT pages are opened by Greg in a tab; the content script there reads the page he sees.
 
 ## Single sources of truth
 - MOT rules: `MOT_RULES` and the word lists in `src/mot/motHistoryAnalysis.ts`. README.md ("The MOT

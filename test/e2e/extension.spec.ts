@@ -7,21 +7,23 @@ import { motHistoryPageHtml } from '../fixtures/motHistoryPage.ts';
 
 const EXTENSION_FOLDER = resolve('dist');
 
-const motPage = motHistoryPageHtml({
-  makeAndModel: 'MAZDA MX-5',
-  motDue: '7 February 2027',
-  tests: [
-    { date: '4 February 2026', result: 'PASS', odometer: '30,000 miles', expiry: '7 February 2027' },
-    {
-      date: '3 February 2025',
-      result: 'PASS',
-      odometer: '20,000 miles',
-      expiry: '6 February 2026',
-      defects: { advisory: ['Offside Sill corroded (5.3.3)'] },
-    },
-    { date: '2 February 2023', result: 'PASS', odometer: '10,000 miles', expiry: '1 February 2024' },
-  ],
-});
+const motPage = (registrationShown: string): string =>
+  motHistoryPageHtml({
+    registrationShown,
+    makeAndModel: 'MAZDA MX-5',
+    motDue: '7 February 2027',
+    tests: [
+      { date: '4 February 2026', result: 'PASS', odometer: '30,000 miles', expiry: '7 February 2027' },
+      {
+        date: '3 February 2025',
+        result: 'PASS',
+        odometer: '20,000 miles',
+        expiry: '6 February 2026',
+        defects: { advisory: ['Offside Sill corroded (5.3.3)'] },
+      },
+      { date: '2 February 2023', result: 'PASS', odometer: '10,000 miles', expiry: '1 February 2024' },
+    ],
+  });
 
 /** A results page that loads its listings the way Autotrader does: a POST to its gateway. */
 const searchPage = `<!doctype html><html lang="en"><head><title>Search</title></head><body>
@@ -46,7 +48,11 @@ test.beforeAll(async () => {
     headless: true,
     args: [`--disable-extensions-except=${EXTENSION_FOLDER}`, `--load-extension=${EXTENSION_FOLDER}`],
   });
-  await context.route('https://www.check-mot.service.gov.uk/**', (route) => route.fulfill({ contentType: 'text/html', body: motPage }));
+  // GOV.UK shows the registration that was asked for, spaced as on a plate.
+  await context.route('https://www.check-mot.service.gov.uk/**', (route) => {
+    const asked = new URL(route.request().url()).searchParams.get('registration') ?? 'ZZ99ZZZ';
+    return route.fulfill({ contentType: 'text/html', body: motPage(`${asked.slice(0, 4)} ${asked.slice(4)}`) });
+  });
   await context.route('https://www.autotrader.co.uk/**', async (route) => {
     const url = new URL(route.request().url());
     if (url.pathname === '/at-gateway') {
@@ -80,7 +86,16 @@ test.beforeAll(async () => {
       return route.fulfill({ contentType: 'application/json', body: JSON.stringify([{ data: { searchResults: { listings } } }]) });
     }
     if (url.pathname.startsWith('/car-details/')) {
-      return route.fulfill({ contentType: 'text/html', body: advertPageHtml(advertPageData({ id: url.pathname.split('/')[2] ?? '' })) });
+      const dataScript = advertPageHtml(advertPageData({ id: url.pathname.split('/')[2] ?? '' })).replace(
+        /^<html><body>|<\/body><\/html>$/g,
+        '',
+      );
+      const body = `<html lang="en"><head><title>Advert</title></head><body><main>
+        <section data-testid="vehicle-information"><h1>2016 Mazda MX-5</h1></section>
+        <section data-testid="overview"><h2>Overview</h2></section>
+        <section data-testid="description"><h2>Description</h2><p>A lovely car.</p></section>
+      </main>${dataScript}</body></html>`;
+      return route.fulfill({ contentType: 'text/html', body });
     }
     return route.fulfill({ contentType: 'text/html', body: searchPage });
   });
@@ -119,17 +134,34 @@ test('builds the fast table from the search data and loads further pages', async
   await expect(table).toBeHidden();
 });
 
-test('shows the advert panel and checks the MOT from the reg in the description', async () => {
+test('shows At a glance in the page, and the MOT summary from the GOV.UK tab that Check opens', async () => {
   const page = await context.newPage();
   await page.goto('https://www.autotrader.co.uk/car-details/202607314693714');
-  const panel = page.getByRole('complementary', { name: 'At a glance' });
+  const panel = page.locator('details.atf-panel');
   await expect(panel).toContainText('0-62mph7.3 seconds');
+  // In the page, above Overview, not floating over the description
+  await expect(page.locator('details.atf-panel + section[data-testid="overview"]')).toHaveCount(1);
+  await expect(panel).not.toHaveClass(/atf-floating/);
+
+  // Folds up and stays folded on the next advert
+  await panel.locator('summary').click();
+  await expect(panel).not.toHaveAttribute('open', '');
+  await page.reload();
+  await expect(page.locator('details.atf-panel')).toBeVisible();
+  await expect(page.locator('details.atf-panel')).not.toHaveAttribute('open', '');
+  await page.locator('details.atf-panel summary').click();
+
   await expect(panel.getByRole('textbox', { name: 'Registration number' })).toHaveValue('AB12CDE');
-  await expect(panel.getByRole('region', { name: 'MOT history summary' })).toContainText('Corrosion (advisory, 3 Feb 2025)');
-  await expect(panel.getByRole('link', { name: 'Open the GOV.UK MOT page ↗' })).toHaveAttribute(
-    'href',
+  const govUkTabOpening = context.waitForEvent('page');
+  await panel.getByRole('button', { name: 'Check on GOV.UK' }).click();
+  const govUkTab = await govUkTabOpening;
+  await expect(govUkTab).toHaveURL(
     'https://www.check-mot.service.gov.uk/results?registration=AB12CDE&checkRecalls=true&atfMiles=26760&atfMake=Mazda',
   );
+  await expect(govUkTab.getByRole('region', { name: 'MOT history summary' })).toContainText('Corrosion (advisory, 3 Feb 2025)');
+  // ...and the same summary appears back on the advert
+  await expect(panel.getByRole('region', { name: 'MOT history summary' })).toContainText('Corrosion (advisory, 3 Feb 2025)');
+  await expect(panel).toContainText('From GOV.UK on');
 });
 
 test('sorts the search with one click, and applies a chosen default to later searches', async () => {

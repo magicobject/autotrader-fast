@@ -4,7 +4,7 @@ import * as z from 'zod/mini';
 
 const manifestSchema = z.object({
   permissions: z.array(z.string()),
-  host_permissions: z.array(z.string()),
+  host_permissions: z.optional(z.array(z.string())),
   background: z.object({ service_worker: z.string() }),
   content_scripts: z.array(
     z.object({ matches: z.array(z.string()), js: z.array(z.string()), run_at: z.optional(z.string()), world: z.optional(z.string()) }),
@@ -15,8 +15,8 @@ const manifest = manifestSchema.parse(JSON.parse(readFileSync('static/manifest.j
 const buildScript = readFileSync('scripts/build.mjs', 'utf8');
 
 describe('manifest', () => {
-  it('asks only for storage, and to read GOV.UK MOT pages from the background worker', () => {
-    expect(manifest.host_permissions).toEqual(['https://www.check-mot.service.gov.uk/*']);
+  it('asks only for storage, and no host access beyond its content scripts', () => {
+    expect(manifest.host_permissions).toBeUndefined();
     expect(manifest.permissions).toEqual(['storage']);
   });
 
