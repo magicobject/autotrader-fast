@@ -1,0 +1,178 @@
+/* Autotrader Fast Search + MOT Check: styles for the table, the advert panel and the MOT card.
+   Injected into Autotrader and GOV.UK pages, so every class starts atf- and every token --atf-.
+
+   Colour tokens. Every text/background pairing is checked against WCAG AA in
+   test/contrast.test.ts (4.5:1 for text, 3:1 for UI and large text); ratios recorded here:
+     --atf-ink #1c1f24 on --atf-paper #ffffff 16.52
+     --atf-ink #1c1f24 on --atf-canvas #f6f7f9 15.42
+     --atf-ink #1c1f24 on --atf-heading-bg #eef1f5 14.59
+     --atf-ink #1c1f24 on --atf-heading-sorted #dfe7f3 13.27
+     --atf-ink #1c1f24 on --atf-reg-yellow #ffd400 11.54
+     --atf-ink #1c1f24 on --atf-amber #e08a00 6.14
+     --atf-on-dark #ffffff on --atf-navy #1b2a41 14.44
+     --atf-on-dark #ffffff on --atf-red #c62828 5.62
+     --atf-on-dark #ffffff on --atf-green #2e7d32 5.13
+     --atf-on-dark #ffffff on --atf-pill-green #137333 5.95
+     --atf-muted #5f6670 on --atf-paper #ffffff 5.80
+     --atf-muted #5f6670 on --atf-new-row #f0fbf2 5.46
+     --atf-label #4a5361 on --atf-paper #ffffff 7.77
+     --atf-link #0b4fa6 on --atf-paper #ffffff 7.83
+     --atf-link #0b4fa6 on --atf-new-row #f0fbf2 7.37
+     --atf-price-down #137333 on --atf-paper #ffffff 5.95
+     --atf-price-up #b3261e on --atf-paper #ffffff 6.54
+     --atf-red-text #8e1c1c on --atf-card #fafbfc 8.69
+     --atf-amber-dot #a35200 on --atf-card #fafbfc 5.38 (UI)
+     --atf-focus #1d70b8 on --atf-paper #ffffff 5.17 (UI)
+   --atf-featured #c9a227 marks featured (paid) listings and is decorative: nothing depends on seeing it. */
+.atf-overlay, .atf-panel, .atf-launch, .atf-mot-card {
+  --atf-ink: #1c1f24;
+  --atf-paper: #ffffff;
+  --atf-canvas: #f6f7f9;
+  --atf-card: #fafbfc;
+  --atf-heading-bg: #eef1f5;
+  --atf-heading-sorted: #dfe7f3;
+  --atf-border: #dde1e6;
+  --atf-rule: #eceef1;
+  --atf-navy: #1b2a41;
+  --atf-navy-hover: #2e4570;
+  --atf-on-dark: #ffffff;
+  --atf-muted: #5f6670;
+  --atf-label: #4a5361;
+  --atf-link: #0b4fa6;
+  --atf-new-row: #f0fbf2;
+  --atf-hover-row: #f7faff;
+  --atf-price-down: #137333;
+  --atf-price-up: #b3261e;
+  --atf-pill-green: #137333;
+  --atf-red: #c62828;
+  --atf-red-text: #8e1c1c;
+  --atf-amber: #e08a00;
+  --atf-amber-dot: #a35200;
+  --atf-green: #2e7d32;
+  --atf-reg-yellow: #ffd400;
+  --atf-reg-border: #b39600;
+  --atf-focus: #1d70b8;
+  --atf-featured: #c9a227;
+}
+
+.atf-launch {
+  position: fixed; right: 18px; bottom: 18px; z-index: 2147483000;
+  background: var(--atf-navy); color: var(--atf-on-dark); border: 0; border-radius: 22px;
+  padding: 11px 18px; font: 600 14px/1.2 system-ui, sans-serif;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .25); cursor: pointer;
+}
+.atf-launch:hover { background: var(--atf-navy-hover); }
+
+.atf-overlay {
+  position: fixed; inset: 0; z-index: 2147483001; background: var(--atf-canvas);
+  display: flex; flex-direction: column; font: 13px/1.35 system-ui, sans-serif; color: var(--atf-ink);
+}
+.atf-overlay[hidden] { display: none; }
+.atf-bar {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  padding: 8px 12px; background: var(--atf-paper); border-bottom: 1px solid var(--atf-border);
+}
+.atf-brand { margin-right: 6px; font-size: 15px; }
+.atf-btn {
+  background: var(--atf-navy); color: var(--atf-on-dark); border: 0; border-radius: 6px;
+  padding: 6px 10px; font: 600 12px system-ui, sans-serif; cursor: pointer;
+}
+.atf-btn:hover { background: var(--atf-navy-hover); }
+.atf-in {
+  border: 1px solid #8a919b; border-radius: 6px; padding: 5px 7px;
+  font: 12px system-ui, sans-serif; background: var(--atf-paper); color: var(--atf-ink);
+}
+.atf-chk { display: inline-flex; gap: 3px; align-items: center; font-size: 12px; }
+.atf-status { color: var(--atf-muted); font-size: 12px; margin-left: 6px; }
+.atf-x {
+  margin-left: auto; background: transparent; border: 0; font-size: 18px;
+  cursor: pointer; color: var(--atf-ink); padding: 2px 8px;
+}
+.atf-tablewrap { overflow: auto; flex: 1; }
+.atf-table { border-collapse: collapse; width: 100%; background: var(--atf-paper); }
+.atf-table th {
+  position: sticky; top: 0; background: var(--atf-heading-bg); text-align: left;
+  font-weight: 600; padding: 6px; border-bottom: 1px solid #cfd5dc;
+  white-space: nowrap; z-index: 1;
+}
+.atf-table th.atf-sorted { background: var(--atf-heading-sorted); }
+.atf-sort { all: unset; cursor: pointer; font: inherit; font-weight: 600; color: inherit; }
+.atf-table td { padding: 5px 6px; border-bottom: 1px solid var(--atf-rule); vertical-align: top; }
+.atf-table tr:hover td { background: var(--atf-hover-row); }
+.atf-table tr.atf-new td { background: var(--atf-new-row); }
+.atf-table tr.atf-feat td:first-child { box-shadow: inset 3px 0 var(--atf-featured); }
+.atf-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.atf-car { min-width: 230px; max-width: 340px; }
+.atf-car a { color: var(--atf-link); font-weight: 600; text-decoration: none; }
+.atf-car a:hover { text-decoration: underline; }
+.atf-muted { color: var(--atf-muted); font-size: 12px; }
+.atf-small { font-size: 12px; }
+.atf-thumb { width: 88px; height: 66px; object-fit: cover; border-radius: 4px; display: block; }
+.atf-down { color: var(--atf-price-down); font-weight: 600; }
+.atf-up { color: var(--atf-price-up); }
+.atf-pill {
+  background: var(--atf-pill-green); color: var(--atf-on-dark); font-size: 10px; font-weight: 700;
+  border-radius: 8px; padding: 1px 6px; margin-left: 5px;
+}
+
+.atf-rag {
+  display: inline-block; min-width: 20px; text-align: center; border-radius: 4px;
+  padding: 2px 6px; font: 700 11px system-ui, sans-serif; color: var(--atf-on-dark);
+}
+.atf-rag-red { background: var(--atf-red); }
+.atf-rag-amber { background: var(--atf-amber); color: var(--atf-ink); }
+.atf-rag-green { background: var(--atf-green); }
+
+/* advert page panel */
+.atf-panel {
+  position: fixed; top: 90px; right: 14px; width: 340px; max-height: calc(100vh - 110px);
+  z-index: 2147483000; background: var(--atf-paper); border: 1px solid #d5dae0; border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .18); display: flex; flex-direction: column;
+  font: 13px/1.35 system-ui, sans-serif; color: var(--atf-ink);
+}
+.atf-panel-head { display: flex; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--atf-rule); }
+.atf-panel-head .atf-x { font-size: 16px; }
+.atf-panel-body { overflow: auto; padding: 4px 10px 10px; }
+.atf-collapsed .atf-panel-body { display: none; }
+.atf-sec { margin-top: 10px; }
+h2.atf-sec-t {
+  margin: 0 0 4px; font-weight: 700; font-size: 12px; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--atf-label);
+}
+.atf-kv { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; border-bottom: 1px dotted #e3e6ea; }
+.atf-kv span { color: var(--atf-label); }
+.atf-kv b { text-align: right; }
+.atf-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.atf-panel a { color: var(--atf-link); }
+.atf-panel a[hidden] { display: none; }
+.atf-panel p.atf-muted { margin: 6px 0 0; }
+.atf-reg {
+  width: 92px; text-transform: uppercase; font-weight: 700; letter-spacing: .05em;
+  background: var(--atf-reg-yellow); border-color: var(--atf-reg-border);
+}
+.atf-mot-out { margin-top: 8px; }
+
+/* MOT summary card (advert panel and GOV.UK page) */
+.atf-mot-card {
+  border: 1px solid var(--atf-border); border-radius: 8px; padding: 8px 10px;
+  background: var(--atf-card); font: 13px/1.4 system-ui, sans-serif; color: var(--atf-ink);
+}
+.atf-mot-head { margin-bottom: 6px; }
+.atf-reasons { list-style: none; margin: 0; padding: 0; }
+.atf-reasons li { position: relative; padding: 3px 0 3px 16px; }
+.atf-dot { position: absolute; left: 2px; top: 9px; width: 8px; height: 8px; border-radius: 50%; }
+.atf-r-red .atf-dot { background: var(--atf-red); }
+.atf-r-amber .atf-dot { background: var(--atf-amber-dot); }
+.atf-r-green .atf-dot { background: var(--atf-green); }
+.atf-r-red { color: var(--atf-red-text); }
+.atf-on-gov { margin: 20px 0; font-size: 16px; max-width: 900px; }
+
+/* shared */
+.atf-visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.atf-sort:focus-visible, .atf-btn:focus-visible, .atf-x:focus-visible, .atf-launch:focus-visible,
+.atf-in:focus-visible, .atf-table a:focus-visible, .atf-panel a:focus-visible, .atf-chk input:focus-visible {
+  outline: 3px solid var(--atf-focus); outline-offset: 2px;
+}

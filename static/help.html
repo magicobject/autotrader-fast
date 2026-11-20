@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Help - Autotrader Fast Search + MOT Check</title>
+<link rel="stylesheet" href="help.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<main id="main">
+<h1>Autotrader Fast Search + MOT Check</h1>
+<p class="lede">A helper for your own car hunting on autotrader.co.uk. It works on the pages you visit and keeps everything on this computer.</p>
+
+<nav aria-label="On this page">
+  <ul>
+    <li><a href="#search">Searching: the fast table</a></li>
+    <li><a href="#advert">Looking at an advert</a></li>
+    <li><a href="#mot">The MOT colours</a></li>
+    <li><a href="#privacy">What it keeps, and where</a></li>
+    <li><a href="#problems">If something stops working</a></li>
+  </ul>
+</nav>
+
+<h2 id="search">Searching: the fast table</h2>
+<p>Search on Autotrader as normal. A dark <strong>⚡ Fast table</strong> button appears in the bottom right corner (or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>; <kbd>Esc</kbd> closes it). The button tells you how many cars it has found, how many are new since you last ran this search, and how many have dropped in price.</p>
+<ol>
+  <li><strong>Load all pages</strong> brings in every page of your search, so you don't have to keep scrolling. The box next to it is the most pages it will load (30 pages is about 750 cars).</li>
+  <li>Narrow things down with the filters: a maximum price, maximum miles, earliest year, minimum power, <strong>Trade only</strong>, or <strong>Hide MOT red</strong> to leave out cars whose MOT check came back red. In the words box, every word must match, and a word starting with a minus sign is left out. For example <code>sport -auto -cat</code> finds Sport models that aren't automatics or insurance write-offs.</li>
+  <li><strong>Get specs</strong> fills in power (BHP), 0–62, top speed, torque, miles per gallon, insurance group, road tax, number of owners, gearbox, body style, service history and Autotrader's basic history check for the cars you can see. It takes about a quarter of a second per car, so filter first. It remembers specs for three days.</li>
+  <li>Click any column heading to sort by it, and click again to reverse.</li>
+  <li><strong>New</strong> shows only cars that weren't there last time. The <strong>Δ£</strong> column shows how much a price has changed since you first saw the car (hover over it for the full history). <strong>Price drops</strong> shows only cars that have come down.</li>
+  <li><strong>MOT check</strong> colours the MOT column for every car whose registration is known (see below).</li>
+  <li><strong>CSV</strong> downloads what you can see as a spreadsheet file.</li>
+</ol>
+
+<h2 id="advert">Looking at an advert</h2>
+<p>A panel called <strong>At a glance</strong> appears on the right with the performance figures, running costs and history, so there is no need to open "View all spec and features". The <strong>–</strong> button folds it away; it stays folded until you open it again.</p>
+<p>To check the MOT history, the extension needs the registration. Autotrader doesn't publish it. If the seller wrote it in the description, the extension finds it for you. Otherwise read it from the photos, type it into the yellow box and press <strong>Check</strong>. It remembers the registration for that advert.</p>
+
+<h2 id="mot">The MOT colours</h2>
+<p>The extension reads the car's public MOT history from GOV.UK and lists every concern with its date, so you can judge for yourself. The colour is a quick summary.</p>
+<h3>Red if any of these</h3>
+<ul>
+  <li>A missing MOT: no valid MOT for more than 90 days between tests, or no MOT tests at all on a car over 3 years old.</li>
+  <li>The mileage went down between tests, or the advert shows fewer miles than the last MOT (by more than 50 miles, to allow for typing slips).</li>
+  <li>Rust that failed a test, or rust on structural parts (sills, subframe, floor, mountings) or on brake or fuel pipes, in the last 4 years.</li>
+  <li>A "dangerous" defect on anything other than a consumable (see Green below), in the last 4 years.</li>
+  <li>The MOT record is for a different make of car, which usually means the registration was typed wrongly.</li>
+</ul>
+<h3>Amber if any of these</h3>
+<ul>
+  <li>The MOT lapsed for 31 to 90 days, or the current MOT has expired.</li>
+  <li>The first MOT was more than 90 days after the car turned three. It may be an import or a Northern Ireland car, or a test may be missing.</li>
+  <li>A stretch of years with very uneven mileage: 3 times more or less than the car's usual yearly miles, and at least 5,000 miles a year different.</li>
+  <li>Rust mentioned as an advisory.</li>
+  <li>Failures on anything other than a consumable; other advisories on the latest test; and anything advised at one test and still there at the next.</li>
+  <li>Dangerous consumables, such as bald tyres or worn-out brake pads: it suggests the car was neglected.</li>
+</ul>
+<h3>Green</h3>
+<p>Nothing above, so only consumables have been flagged recently: tyres, brake pads and discs, wipers and washers, bulbs, lamps, indicators and reflectors, number plates, the horn, the windscreen and mirrors.</p>
+<p>If you open a car's page on the GOV.UK MOT history site yourself, the same summary appears at the top of it.</p>
+
+<h2 id="privacy">What it keeps, and where</h2>
+<p>Everything stays in Chrome on this computer: the specs it has read (for three days), the prices it has seen (cars not seen for four months are forgotten), the registrations you've typed in, and MOT summaries (for twelve hours). It doesn't send anything anywhere except to Autotrader and GOV.UK, the same pages you would open yourself. It reads Autotrader at a gentle pace and is meant for your own use while you browse.</p>
+
+<h2 id="problems">If something stops working</h2>
+<p>Autotrader and GOV.UK change their pages from time to time. If the table stays empty, the panel says it can't read an advert, or the MOT check fails, the extension probably needs updating for the new page layout. The person who looks after it will find notes in the project's README.</p>
+</main>
+</body>
+</html>
