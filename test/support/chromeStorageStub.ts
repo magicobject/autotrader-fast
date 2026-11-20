@@ -7,8 +7,8 @@ export function installChromeStorageStub(): Map<string, unknown> {
     storage: {
       local: {
         get: async (key: string | null) => (key === null ? Object.fromEntries(stored) : stored.has(key) ? { [key]: stored.get(key) } : {}),
-        remove: async (keys: readonly string[]) => {
-          for (const key of keys) stored.delete(key);
+        remove: async (keys: string | readonly string[]) => {
+          for (const key of typeof keys === 'string' ? [keys] : keys) stored.delete(key);
         },
         set: async (items: Record<string, unknown>) => {
           for (const [key, value] of Object.entries(items)) stored.set(key, structuredClone(value));

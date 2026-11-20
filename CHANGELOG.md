@@ -2,6 +2,14 @@
 
 Every build, newest first. Each entry is tagged `build-<build>` in git.
 
+## 2026.11.20.002 · Greg Wright · 20 Nov 2026
+
+One-click sorting on Autotrader's search results (version 1.1.0).
+
+- A **quick sort** row above the results: Cheapest, Nearest, Lowest miles, Newest, Just listed and Best match, each one click instead of going through "Filter and sort" ([src/autotrader/quickSortBar.ts](src/autotrader/quickSortBar.ts), [src/autotrader/sortOrders.ts](src/autotrader/sortOrders.ts)).
+- **Make this my default** sorts every search that doesn't choose its own order ([src/shared/storage.ts](src/shared/storage.ts)).
+- Described on the [help page](static/help.html#quick-sort) and in [README.md](README.md); styles in [static/styles.css](static/styles.css).
+
 ## 2026.11.20.001 · Greg Wright · 20 Nov 2026
 
 The first version of the extension, rebuilt in TypeScript from the prototype made the same morning.

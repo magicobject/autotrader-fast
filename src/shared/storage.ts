@@ -4,6 +4,7 @@
 import * as z from 'zod/mini';
 import { advertDetailsSchema, type AdvertDetails } from '../autotrader/advertDetails.ts';
 import { motSummarySchema } from '../mot/motHistoryTypes.ts';
+import { sortOrderSchema, type SortOrder } from '../autotrader/sortOrders.ts';
 import { epochMsSchema, nowEpochMs, registrationSchema, type AdvertId, type EpochMs, type Registration } from './brands.ts';
 import { MILLISECONDS_PER_DAY } from './numbers.ts';
 
@@ -15,6 +16,7 @@ const storageKeys = {
   priceHistory: 'v1:price-history',
   searchVisits: 'v1:search-visits',
   advertPanelCollapsed: 'v1:advert-panel-collapsed',
+  defaultSortOrder: 'v1:default-sort-order',
   advertDetails: (advertId: AdvertId) => `v1:advert-details:${advertId}`,
   registration: (advertId: AdvertId) => `v1:registration:${advertId}`,
   motSummary: (registration: Registration) => `v1:mot-summary:${registration}`,
@@ -132,6 +134,16 @@ export async function readAdvertPanelCollapsed(): Promise<boolean> {
 
 export async function writeAdvertPanelCollapsed(isCollapsed: boolean): Promise<void> {
   await writeStored(storageKeys.advertPanelCollapsed, isCollapsed);
+}
+
+/** The sort order to apply to every search that doesn't choose one, or null for Autotrader's own default. */
+export async function readDefaultSortOrder(): Promise<SortOrder | null> {
+  return readStored(storageKeys.defaultSortOrder, sortOrderSchema);
+}
+
+export async function writeDefaultSortOrder(sortOrder: SortOrder | null): Promise<void> {
+  if (sortOrder === null) await chrome.storage.local.remove(storageKeys.defaultSortOrder);
+  else await writeStored(storageKeys.defaultSortOrder, sortOrder);
 }
 
 // ---- tidying up -----------------------------------------------------------------------------

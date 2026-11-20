@@ -39,6 +39,8 @@ const PAIRINGS: readonly (readonly [string, string, number])[] = [
   ['ink', 'new-row', TEXT],
   ['ink', 'hover-row', TEXT],
   ['on-dark', 'navy', TEXT],
+  ['navy', 'paper', TEXT],
+  ['navy', 'heading-bg', TEXT],
   ['on-dark', 'navy-hover', TEXT],
   ['on-dark', 'red', TEXT],
   ['on-dark', 'green', TEXT],

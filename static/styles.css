@@ -22,9 +22,12 @@
      --atf-price-up #b3261e on --atf-paper #ffffff 6.54
      --atf-red-text #8e1c1c on --atf-card #fafbfc 8.69
      --atf-amber-dot #a35200 on --atf-card #fafbfc 5.38 (UI)
+     --atf-navy #1b2a41 on --atf-paper #ffffff 14.44 (quick-sort buttons)
+     --atf-navy #1b2a41 on --atf-heading-bg #eef1f5 12.75 (quick-sort buttons)
+     --atf-on-dark #ffffff on --atf-navy-hover #2e4570 9.54 (quick-sort buttons)
      --atf-focus #1d70b8 on --atf-paper #ffffff 5.17 (UI)
    --atf-featured #c9a227 marks featured (paid) listings and is decorative: nothing depends on seeing it. */
-.atf-overlay, .atf-panel, .atf-launch, .atf-mot-card {
+.atf-overlay, .atf-panel, .atf-launch, .atf-mot-card, .atf-quicksort {
   --atf-ink: #1c1f24;
   --atf-paper: #ffffff;
   --atf-canvas: #f6f7f9;
@@ -122,6 +125,23 @@
 .atf-rag-red { background: var(--atf-red); }
 .atf-rag-amber { background: var(--atf-amber); color: var(--atf-ink); }
 .atf-rag-green { background: var(--atf-green); }
+
+/* quick-sort bar above Autotrader's results */
+.atf-quicksort {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 12px;
+  font: 13px/1.2 system-ui, sans-serif; color: var(--atf-ink);
+}
+.atf-qs-label { font-weight: 700; margin-right: 2px; }
+.atf-qs-btn, .atf-qs-default {
+  border: 1px solid var(--atf-navy); border-radius: 16px; padding: 6px 12px; cursor: pointer;
+  background: var(--atf-paper); color: var(--atf-navy); font: 600 13px system-ui, sans-serif;
+}
+.atf-qs-btn[aria-pressed="true"] { background: var(--atf-navy); color: var(--atf-on-dark); }
+.atf-qs-btn:hover { background: var(--atf-heading-bg); }
+.atf-qs-btn[aria-pressed="true"]:hover { background: var(--atf-navy-hover); }
+.atf-qs-default { border-style: dashed; margin-left: 6px; }
+.atf-qs-default[aria-pressed="true"] { border-style: solid; }
+.atf-qs-btn:focus-visible, .atf-qs-default:focus-visible { outline: 3px solid var(--atf-focus); outline-offset: 2px; }
 
 /* advert page panel */
 .atf-panel {
