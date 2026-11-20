@@ -48,7 +48,7 @@ describe('QuickSortBar', () => {
     document.querySelector<HTMLButtonElement>('.atf-qs-default')?.click();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(stored.get('v1:default-sort-order')).toBe('mileage');
-    expect(document.querySelector('.atf-qs-default')?.textContent).toBe('★ My default');
+    expect(document.querySelector('.atf-qs-default')?.textContent).toBe('★ My default sort');
 
     const unsorted = fakeNavigation(SEARCH);
     await new QuickSortBar(unsorted).update();
@@ -65,6 +65,16 @@ describe('QuickSortBar', () => {
     document.querySelector<HTMLButtonElement>('.atf-qs-default')?.click();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(stored.has('v1:default-sort-order')).toBe(false);
+  });
+
+  it('makes Best match the default without reloading a search that already uses it', async () => {
+    const navigation = fakeNavigation(SEARCH);
+    await new QuickSortBar(navigation).update();
+    document.querySelector<HTMLButtonElement>('.atf-qs-default')?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(stored.get('v1:default-sort-order')).toBe('relevance');
+    expect(navigation.visits).toEqual([]);
+    expect(document.activeElement?.classList.contains('atf-qs-default')).toBe(true);
   });
 
   it('is not shown away from search results', async () => {

@@ -137,14 +137,14 @@ test('sorts the search with one click, and applies a chosen default to later sea
   await quickSort.getByRole('button', { name: 'Lowest miles' }).click();
   await expect(page).toHaveURL('https://www.autotrader.co.uk/car-search?make=Mazda&sort=mileage');
   await expect(quickSort.getByRole('button', { name: 'Lowest miles' })).toHaveAttribute('aria-pressed', 'true');
-  await quickSort.getByRole('button', { name: '☆ Make this my default' }).click();
-  await expect(quickSort.getByRole('button', { name: '★ My default' })).toBeVisible();
+  await quickSort.getByRole('button', { name: 'My default sort', pressed: false }).click();
+  await expect(quickSort.getByRole('button', { name: 'My default sort', pressed: true })).toBeVisible();
 
   await page.goto('https://www.autotrader.co.uk/car-search?make=BMW');
   await expect(page).toHaveURL('https://www.autotrader.co.uk/car-search?make=BMW&sort=mileage');
   await expect(quickSort.getByRole('button', { name: 'Lowest miles' })).toHaveAttribute('aria-pressed', 'true');
 
   // Leave no default behind for other tests.
-  await quickSort.getByRole('button', { name: '★ My default' }).click();
-  await expect(quickSort.getByRole('button', { name: '☆ Make this my default' })).toBeVisible();
+  await quickSort.getByRole('button', { name: 'My default sort', pressed: true }).click();
+  await expect(quickSort.getByRole('button', { name: 'My default sort', pressed: false })).toBeVisible();
 });

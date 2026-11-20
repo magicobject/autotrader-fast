@@ -48,7 +48,8 @@ document.addEventListener('keydown', (event) => {
 
 let lastPathname: string | null = null;
 function followAddressChanges(): void {
-  void quickSortBar.update(); // cheap when nothing changed; puts the bar back if the page redrew
+  // Cheap when nothing changed; puts the bar back if the page redrew.
+  quickSortBar.update().catch((error: unknown) => console.warn('[Autotrader Fast] quick sort', error));
   if (location.pathname === lastPathname) return;
   lastPathname = location.pathname;
   const advertId = advertIdFromPath(location.pathname);

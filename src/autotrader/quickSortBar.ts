@@ -49,7 +49,14 @@ export class QuickSortBar {
   private defaultSortOrder: SortOrder | null = null;
   private hasReadDefault = false;
 
-  constructor(private readonly navigation: PageNavigation = browserNavigation) {}
+  constructor(private readonly navigation: PageNavigation = browserNavigation) {
+    // A default chosen in another tab applies here too, from the next address change.
+    if (typeof chrome !== 'undefined' && chrome.storage.onChanged) {
+      chrome.storage.onChanged.addListener(() => {
+        this.hasReadDefault = false;
+      });
+    }
+  }
 
   /**
    * Called whenever the address may have changed. Applies the default sort to a search that has
@@ -65,7 +72,9 @@ export class QuickSortBar {
       document.querySelector('.atf-quicksort')?.remove();
       return;
     }
-    if (this.defaultSortOrder !== null && !hasSortInUrl(href) && !alreadyAppliedDefaultTo(href)) {
+    // "relevance" is Autotrader's own order, so a search without a sort already has it.
+    const needsDefault = this.defaultSortOrder !== null && this.defaultSortOrder !== 'relevance' && !hasSortInUrl(href);
+    if (needsDefault && this.defaultSortOrder !== null && !alreadyAppliedDefaultTo(href)) {
       rememberAppliedDefault(href);
       this.navigation.goTo(urlWithSortOrder(href, this.defaultSortOrder), true);
       return;
@@ -90,19 +99,33 @@ export class QuickSortBar {
       }),
     );
     const isCurrentTheDefault = currentSortOrder !== null && currentSortOrder === this.defaultSortOrder;
-    const defaultButton = createElement('button', {
-      className: 'atf-qs-default',
-      text: isCurrentTheDefault ? '★ My default' : '☆ Make this my default',
-      title: isCurrentTheDefault
-        ? 'Every search you open is sorted this way. Press to go back to Autotrader’s own order.'
-        : 'Sort every search this way unless you choose otherwise',
-      attributes: { type: 'button', 'aria-pressed': String(isCurrentTheDefault) },
-      onClick: () => void this.toggleDefault(currentSortOrder, isCurrentTheDefault),
-    });
+    // A toggle keeps one name; only its pressed state and the (hidden from screen readers) star change.
+    const defaultButton = createElement(
+      'button',
+      {
+        className: 'atf-qs-default',
+        title: isCurrentTheDefault
+          ? 'Every search you open is sorted this way. Press to go back to Autotrader’s own order.'
+          : 'Sort every search this way unless you choose otherwise',
+        attributes: { type: 'button', 'aria-pressed': String(isCurrentTheDefault) },
+        onClick: () => {
+          this.toggleDefault(currentSortOrder, isCurrentTheDefault).catch((error: unknown) =>
+            console.warn('[Autotrader Fast] default sort', error),
+          );
+        },
+      },
+      createElement('span', { text: isCurrentTheDefault ? '★ ' : '☆ ', attributes: { 'aria-hidden': 'true' } }),
+      'My default sort',
+    );
     const bar = createElement(
       'nav',
       { className: 'atf-quicksort', attributes: { 'aria-label': 'Quick sort' } },
-      createElement('span', { className: 'atf-qs-label', text: '⚡ Sort:' }),
+      createElement(
+        'span',
+        { className: 'atf-qs-label' },
+        createElement('span', { text: '⚡ ', attributes: { 'aria-hidden': 'true' } }),
+        'Sort:',
+      ),
       sortButtons,
       currentSortOrder === null ? null : defaultButton,
     );
@@ -112,7 +135,9 @@ export class QuickSortBar {
 
   private async toggleDefault(currentSortOrder: SortOrder | null, isCurrentTheDefault: boolean): Promise<void> {
     this.defaultSortOrder = isCurrentTheDefault ? null : currentSortOrder;
+    rememberAppliedDefault(this.navigation.currentHref()); // this page already shows the order: no reload
     await writeDefaultSortOrder(this.defaultSortOrder);
+    this.hasReadDefault = true; // our own write; no need to read it back
     document.querySelector('.atf-quicksort')?.remove();
     await this.update();
     document.querySelector<HTMLButtonElement>('.atf-qs-default')?.focus();

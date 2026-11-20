@@ -50,7 +50,9 @@ the `dist` folder. After pulling changes, run `npm run build` again and press th
 - **Quick sort.** `quickSortBar.ts` sets Autotrader's own `sort` address parameter (values in `sortOrders.ts`,
   taken from the live "Filter and sort" dialog), so the sorting is done by Autotrader across the whole
   search. A default order is stored in `chrome.storage.local`; a search with no `sort` is redirected once
-  (the tab's `sessionStorage` remembers it, so it can never loop).
+  (the tab's `sessionStorage` remembers it, so it can never loop; the same memory means a search Greg deliberately
+  sets back to Best match in Autotrader's own dialog isn't re-sorted in that tab). A default of Best match
+  needs no redirect: it is Autotrader's own order.
 - **Registration.** Autotrader's data never includes the reg. `findRegistrationInDescription` looks for one
   in the seller's description; otherwise the person types it.
 - **MOT history.** The background worker fetches
