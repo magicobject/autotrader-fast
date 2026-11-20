@@ -4,6 +4,8 @@
 import * as z from 'zod/mini';
 
 export const PAGE_HOOK_SOURCE = 'atfast-page-hook';
+/** Autotrader sends about 27 per page; anything far larger is not from Autotrader. */
+export const MAX_LISTINGS_PER_PAGE = 200;
 export const CONTENT_SCRIPT_SOURCE = 'atfast-content-script';
 
 // ---- page hook (page's own JavaScript world) → content script --------------------------------
@@ -15,7 +17,7 @@ export const pageHookMessageSchema = z.discriminatedUnion('kind', [
     pageNumber: z.number().check(z.int()).check(z.positive()),
     searchKey: z.string(),
     /** Raw listings exactly as Autotrader sent them; validated by parseSearchListings. */
-    listings: z.array(z.unknown()),
+    listings: z.array(z.unknown()).check(z.maxLength(MAX_LISTINGS_PER_PAGE)),
     loadRunId: z.optional(z.string()),
   }),
   z.object({

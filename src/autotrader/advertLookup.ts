@@ -34,7 +34,7 @@ async function rememberAdvert(details: AdvertDetails, sellerDescription: string)
 
 export async function lookUpAdvertFromHtml(advertId: AdvertId, html: string): Promise<AdvertLookupResult | null> {
   const reading = readAdvertPageData(extractAdvertPageData(html), advertId, nowEpochMs());
-  if (reading === null || (reading.statedAdvertId !== null && reading.statedAdvertId !== advertId)) return null;
+  if (reading === null || reading.statedAdvertId !== advertId) return null;
   return rememberAdvert(reading.details, reading.sellerDescription);
 }
 

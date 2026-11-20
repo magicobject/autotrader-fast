@@ -103,11 +103,11 @@ test('builds the fast table from the search data and loads further pages', async
   const page = await context.newPage();
   await page.goto('https://www.autotrader.co.uk/car-search?make=Mazda');
   await expect(page.locator('.atf-launch')).toHaveText('⚡ Fast table · 2 cars');
-  await page.keyboard.press('f');
+  await page.keyboard.press('Alt+Shift+F');
   const table = page.getByRole('dialog', { name: 'Fast table' });
   await expect(table.locator('.atf-car > a')).toHaveText(['Mazda MX-5 cheap', 'Mazda MX-5 dear']);
   await table.getByRole('button', { name: 'Load all pages' }).click();
-  await expect(table.locator('.atf-status')).toHaveText('Showing 3 of 3 loaded (2 on Autotrader)');
+  await expect(table.locator('.atf-status')).toHaveText('Showing 3 of 3 loaded (2 on Autotrader) · Done · 3 cars');
   await table.getByRole('button', { name: 'Price', exact: true }).click();
   await expect(table.locator('.atf-car > a')).toHaveText(['Mazda MX-5 cheap', 'Mazda MX-5 page two', 'Mazda MX-5 dear']);
   await table.getByRole('button', { name: 'Get specs' }).click();

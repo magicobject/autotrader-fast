@@ -76,6 +76,8 @@ export function readMotHistoryPage(page: ParentNode): MotHistoryPageReading {
   const tests = [...page.querySelectorAll('[data-test-id="test-history-item"]')]
     .map(parseTest)
     .filter((test): test is MotTest => test !== null)
+    // GOV.UK lists newest first; reversing before a stable sort keeps a same-day fail before its retest.
+    .reverse()
     .sort((earlier, later) => earlier.testDate.getTime() - later.testDate.getTime());
   return {
     kind: 'found',

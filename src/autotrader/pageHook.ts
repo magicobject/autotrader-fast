@@ -30,6 +30,16 @@ declare global {
   }
 }
 
+/** Only Autotrader's own gateway on this site is watched (and therefore ever replayed). */
+function isAutotraderGatewayUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url, location.href);
+    return parsed.origin === location.origin && parsed.pathname === '/at-gateway';
+  } catch {
+    return false;
+  }
+}
+
 function installPageHook(): void {
   if (window.__atfastPageHookInstalled) return;
   window.__atfastPageHookInstalled = true;
@@ -64,7 +74,7 @@ function installPageHook(): void {
   window.fetch = function watchedFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     let operation: SearchOperation | null = null;
-    if (url.includes('at-gateway') && url.includes(SEARCH_OPERATION_NAME) && typeof init?.body === 'string') {
+    if (isAutotraderGatewayUrl(url) && url.includes(SEARCH_OPERATION_NAME) && typeof init?.body === 'string') {
       try {
         const rawOperations = asArray(JSON.parse(init.body));
         operation = findSearchOperation(rawOperations);

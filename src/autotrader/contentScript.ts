@@ -30,12 +30,18 @@ window.addEventListener('message', (event: MessageEvent<unknown>) => {
   }
 });
 
+// Esc closes the table; Alt+Shift+F opens it. A modifier is needed so the shortcut can't fire while
+// someone types, or clash with speech-input software (WCAG 2.1.4).
 document.addEventListener('keydown', (event) => {
-  const target = event.target;
-  if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return;
-  if (event.key === 'Escape' && searchTable.isOpen()) searchTable.close();
-  const isPlainF = (event.key === 'f' || event.key === 'F') && !event.ctrlKey && !event.metaKey && !event.altKey;
-  if (isPlainF && location.pathname.startsWith('/car-search')) searchTable.open();
+  if (event.key === 'Escape' && searchTable.isOpen()) {
+    searchTable.close();
+    return;
+  }
+  const isOpenShortcut = event.code === 'KeyF' && event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey;
+  if (isOpenShortcut && location.pathname.startsWith('/car-search')) {
+    event.preventDefault();
+    searchTable.open();
+  }
 });
 
 let lastPathname: string | null = null;

@@ -30,7 +30,7 @@ export function findSearchOperation(rawOperations: readonly unknown[]): SearchOp
   return null;
 }
 
-/** Identifies a search by its filters and sort order (not its page number). */
+/** Identifies a search by its filters and sort order (not its page number). See filtersPartOf. */
 export function searchKeyFor(operation: SearchOperation): string {
   const filterText = (operation.variables.filters ?? [])
     .filter((filter) => filter.filter !== 'page')
@@ -58,4 +58,9 @@ export function withPageNumber(rawOperations: readonly unknown[], pageNumber: nu
     const parsed = searchOperationSchema.safeParse(raw);
     return parsed.success ? { ...parsed.data, variables: { ...parsed.data.variables, page: pageNumber } } : raw;
   });
+}
+
+/** The filters part of a search key: re-sorting on Autotrader is still the same search for "new since last visit". */
+export function filtersPartOf(searchKey: string): string {
+  return searchKey.split('#sort=')[0] ?? searchKey;
 }

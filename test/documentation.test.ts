@@ -17,6 +17,9 @@ describe('MOT rules in the documentation', () => {
     expect(text).toContain(`${MOT_RULES.lapseAmberAfterDays} to ${MOT_RULES.lapseRedAfterDays} days`);
     expect(text).toContain(`last ${MOT_RULES.recentDefectYears} years`);
     expect(text).toContain(`${MOT_RULES.unusualMileageFactor} times`);
+    expect(text).toContain(`${MOT_RULES.unusualMileageMinimumDifference.toLocaleString('en-GB')} miles a year`);
+    expect(text).toContain(`${MOT_RULES.mileageDropToleranceMiles} miles`);
+    expect(text).toContain('over 3 years old');
   });
 });
 

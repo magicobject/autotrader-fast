@@ -90,7 +90,8 @@ function isSameDay(first: Date, second: Date): boolean {
 function checkAdvertisedMake(history: MotHistory, advertisedMake: string | null | undefined): MotFinding[] {
   if (!advertisedMake || history.makeAndModel === '') return [];
   const firstWordOfMake = advertisedMake.toUpperCase().split(/[\s-]/)[0] ?? '';
-  return history.makeAndModel.toUpperCase().includes(firstWordOfMake)
+  const recordWords = history.makeAndModel.toUpperCase().split(/[\s-]+/);
+  return recordWords.includes(firstWordOfMake)
     ? []
     : [{ level: 'red', explanation: `MOT record is for a ${history.makeAndModel}, not a ${advertisedMake}. Check the reg.` }];
 }

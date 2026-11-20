@@ -23,6 +23,10 @@ export function nowEpochMs(): EpochMs {
   return Date.now() as EpochMs;
 }
 
+export function epochMsOf(moment: Date): EpochMs {
+  return moment.getTime() as EpochMs;
+}
+
 /** Validators for the branded types, for reading them back out of storage. */
 export const advertIdSchema = z.custom<AdvertId>((value) => typeof value === 'string' && ADVERT_ID_PATTERN.test(value));
 export const registrationSchema = z.custom<Registration>((value) => typeof value === 'string' && /^[A-Z0-9]{2,7}$/.test(value));

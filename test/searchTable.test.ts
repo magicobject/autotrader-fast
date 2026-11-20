@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // @vitest-environment-options { "url": "https://www.autotrader.co.uk/car-search?make=Mazda" }
 import axe from 'axe-core';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SearchTable } from '../src/autotrader/searchTable.ts';
 import { PAGE_HOOK_SOURCE } from '../src/shared/messages.ts';
 import { searchListing } from './fixtures/autotraderData.ts';
@@ -88,5 +88,42 @@ describe('SearchTable', () => {
     if (!overlay) throw new Error('no overlay');
     const results = await axe.run(overlay, { rules: { 'color-contrast': { enabled: false } } });
     expect(results.violations.map((violation) => `${violation.id}: ${violation.nodes[0]?.html}`)).toEqual([]);
+  });
+});
+
+describe('SearchTable keyboard and loading', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '<span data-testid="search-result-count">2 results</span>';
+    installChromeStorageStub();
+  });
+
+  it('moves focus into the table when opened, keeps it on a heading after sorting, and returns it when closed', async () => {
+    const table = new SearchTable();
+    await table.addResultsPage(resultsPage([cheap, dear]));
+    const launcher = document.querySelector<HTMLButtonElement>('.atf-launch');
+    launcher?.focus();
+    table.open();
+    expect(document.activeElement?.textContent).toBe('Load all pages');
+    await waitForRender();
+    document.querySelector<HTMLButtonElement>('button[data-column="price"]')?.click();
+    expect(document.activeElement?.getAttribute('data-column')).toBe('price');
+    table.close();
+    expect(document.activeElement).toBe(launcher);
+  });
+
+  it('gives up loading pages if the page never answers', async () => {
+    vi.useFakeTimers();
+    try {
+      const table = new SearchTable();
+      await table.addResultsPage(resultsPage([cheap]));
+      table.open();
+      const loading = table.loadAllPages(5);
+      await vi.advanceTimersByTimeAsync(20_500);
+      await loading;
+      await vi.advanceTimersByTimeAsync(200);
+      expect(document.querySelector('.atf-status')?.textContent).toContain('Stopped: no reply from the page for 20 seconds');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

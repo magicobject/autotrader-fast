@@ -123,6 +123,14 @@ describe('analyseMotHistory', () => {
   it('is red when the MOT record is for a different make', () => {
     expect(analyseMotHistory(history(steadyTests()), { today: TODAY, advertisedMake: 'Volkswagen' }).overall).toBe('red');
     expect(analyseMotHistory(history(steadyTests()), { today: TODAY, advertisedMake: 'Mazda' }).overall).toBe('green');
+    // whole words only: a short make mustn't match part of another
+    expect(
+      analyseMotHistory(history(steadyTests(), { makeAndModel: 'NISSAN QASHQAI' }), { today: TODAY, advertisedMake: 'Kia' }).overall,
+    ).toBe('red');
+    expect(
+      analyseMotHistory(history(steadyTests(), { makeAndModel: 'MERCEDES-BENZ E' }), { today: TODAY, advertisedMake: 'Mercedes-Benz' })
+        .overall,
+    ).toBe('green');
   });
 
   it('handles cars too new for an MOT, and old cars with none', () => {

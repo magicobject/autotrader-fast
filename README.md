@@ -28,12 +28,12 @@ the `dist` folder. After pulling changes, run `npm run build` again and press th
 
 ## How it works
 
-| Part | File | Runs in |
-|---|---|---|
-| Page hook | `src/autotrader/pageHook.ts` | Autotrader's own page world, from `document_start` |
-| Content script | `src/autotrader/contentScript.ts` → `searchTable.ts`, `advertPanel.ts` | Every Autotrader page (isolated world) |
-| GOV.UK summary | `src/mot/motResultsPage.ts` | GOV.UK MOT results pages |
-| Background worker | `src/background/serviceWorker.ts` | Extension service worker |
+| Part              | File                                                                   | Runs in                                            |
+| ----------------- | ---------------------------------------------------------------------- | -------------------------------------------------- |
+| Page hook         | `src/autotrader/pageHook.ts`                                           | Autotrader's own page world, from `document_start` |
+| Content script    | `src/autotrader/contentScript.ts` → `searchTable.ts`, `advertPanel.ts` | Every Autotrader page (isolated world)             |
+| GOV.UK summary    | `src/mot/motResultsPage.ts`                                            | GOV.UK MOT results pages                           |
+| Background worker | `src/background/serviceWorker.ts`                                      | Extension service worker                           |
 
 - **Search data.** Autotrader's results page loads listings from its own gateway
   (`/at-gateway?opname=SearchResultsListingsGridQuery`). The page hook wraps `window.fetch`, passes each
@@ -60,17 +60,20 @@ the `dist` folder. After pulling changes, run `npm run build` again and press th
 Single source: `MOT_RULES` and the word lists at the top of `src/mot/motHistoryAnalysis.ts`.
 `test/documentation.test.ts` checks this section and the help page still quote its numbers.
 
-**Red**: no valid MOT for more than 90 days between tests; mileage going down, or the advert showing fewer
-miles than the last MOT; corrosion that failed a test or is on structural parts or brake/fuel pipes; a
-dangerous defect on anything that isn't a consumable; or an MOT record for a different make. Defect rules
-look at the last 4 years.
+**Red**: no valid MOT for more than 90 days between tests; no MOT tests at all on a car over 3 years old;
+mileage going down by more than 50 miles between tests, or the advert showing more than 50 miles fewer than
+the last MOT; corrosion that failed a test or is on structural parts or brake/fuel pipes; a dangerous defect
+on anything that isn't a consumable; or an MOT record for a different make. Defect rules look at the
+last 4 years.
 
-**Amber**: a lapse of 31 to 90 days or an expired MOT; a stretch of very uneven mileage (3 times above or
-below the car's typical yearly miles, and at least 5,000 miles a year different); corrosion advisories;
-failures on non-consumables, non-consumable advisories on the latest test, and items not fixed by the next
-test; dangerous tyres or brakes.
+**Amber**: a lapse of 31 to 90 days or an expired MOT; a first MOT more than 90 days after the car turned 3
+(could be an import or a Northern Ireland car); a stretch of very uneven mileage (3 times above or below the
+car's typical yearly miles, and at least 5,000 miles a year different, over stretches of half a year or
+more); corrosion advisories; failures on non-consumables, non-consumable advisories on the latest test, and
+items not fixed by the next test; dangerous consumables.
 
-**Green**: otherwise. Consumables are tyres, brake pads and discs, wipers, washers, bulbs and lights.
+**Green**: otherwise. Consumables are tyres, brake pads and discs, wipers and washers, bulbs, lamps,
+indicators and reflectors, number plates, the horn, the windscreen and mirrors.
 
 ## Developing
 

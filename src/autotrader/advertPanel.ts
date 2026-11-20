@@ -125,7 +125,9 @@ export class AdvertPanel {
       ),
       body,
     );
+    const isStillShowing = (): boolean => this.shownForAdvertId === advertId; // the person may have moved on
     if (await readAdvertPanelCollapsed()) panel.classList.add('atf-collapsed');
+    if (!isStillShowing()) return;
     document.body.append(panel);
 
     let lookup: Awaited<ReturnType<typeof detailsForThisPage>>;
@@ -135,7 +137,7 @@ export class AdvertPanel {
       body.textContent = `Could not read this advert: ${error instanceof Error ? error.message : String(error)}`;
       return;
     }
-    if (this.shownForAdvertId !== advertId) return; // the person has moved on to another advert
+    if (!isStillShowing()) return;
     const { details, registrationFromDescription } = lookup;
 
     const mot = buildMotSection(advertId, details);
@@ -181,6 +183,7 @@ export class AdvertPanel {
     );
 
     const savedRegistration = await readSavedRegistration(advertId);
+    if (!isStillShowing()) return;
     if (savedRegistration === null) {
       mot.element.append(
         createElement('p', {

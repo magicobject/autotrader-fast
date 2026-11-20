@@ -15,8 +15,8 @@ const manifest = manifestSchema.parse(JSON.parse(readFileSync('static/manifest.j
 const buildScript = readFileSync('scripts/build.mjs', 'utf8');
 
 describe('manifest', () => {
-  it('asks only for the two sites it works on, and storage', () => {
-    expect(manifest.host_permissions).toEqual(['https://www.autotrader.co.uk/*', 'https://www.check-mot.service.gov.uk/*']);
+  it('asks only for storage, and to read GOV.UK MOT pages from the background worker', () => {
+    expect(manifest.host_permissions).toEqual(['https://www.check-mot.service.gov.uk/*']);
     expect(manifest.permissions).toEqual(['storage']);
   });
 

@@ -46,9 +46,33 @@ export async function readPriceHistory(): Promise<PriceHistory> {
   return (await readStored(storageKeys.priceHistory, priceHistorySchema)) ?? {};
 }
 
-export async function writePriceHistory(history: PriceHistory): Promise<void> {
+/** Combines two records of the same adverts (e.g. from two open tabs) without losing either's prices. */
+export function mergePriceHistories(first: PriceHistory, second: PriceHistory): PriceHistory {
+  const merged: PriceHistory = { ...first };
+  for (const [advertId, seen] of Object.entries(second)) {
+    const existing = merged[advertId];
+    if (!existing) {
+      merged[advertId] = seen;
+      continue;
+    }
+    const pointsByTime = new Map([...existing.pricePoints, ...seen.pricePoints].map((point) => [point[0], point]));
+    const pricePoints = [...pointsByTime.values()]
+      .sort((earlier, later) => earlier[0] - later[0])
+      .filter((point, index, points) => index === 0 || point[1] !== points[index - 1]?.[1]);
+    merged[advertId] = {
+      firstSeenMs: existing.firstSeenMs <= seen.firstSeenMs ? existing.firstSeenMs : seen.firstSeenMs,
+      lastSeenMs: existing.lastSeenMs >= seen.lastSeenMs ? existing.lastSeenMs : seen.lastSeenMs,
+      pricePoints,
+    };
+  }
+  return merged;
+}
+
+/** Saves this tab's view merged with whatever another tab has saved meanwhile. */
+export async function savePriceHistory(changes: PriceHistory): Promise<void> {
   const forgetBefore = nowEpochMs() - FORGET_UNSEEN_ADVERTS_AFTER_MS;
-  const recent = Object.fromEntries(Object.entries(history).filter(([, seen]) => seen.lastSeenMs >= forgetBefore));
+  const merged = mergePriceHistories(await readPriceHistory(), changes);
+  const recent = Object.fromEntries(Object.entries(merged).filter(([, seen]) => seen.lastSeenMs >= forgetBefore));
   await writeStored(storageKeys.priceHistory, recent);
 }
 
@@ -108,4 +132,29 @@ export async function readAdvertPanelCollapsed(): Promise<boolean> {
 
 export async function writeAdvertPanelCollapsed(isCollapsed: boolean): Promise<void> {
   await writeStored(storageKeys.advertPanelCollapsed, isCollapsed);
+}
+
+// ---- tidying up -----------------------------------------------------------------------------
+
+/**
+ * Removes advert details and MOT summaries past their age limit, and saved registrations for adverts
+ * we no longer remember at all (not seen for FORGET_UNSEEN_ADVERTS_AFTER_MS and no cached details).
+ */
+export async function pruneExpiredStorage(): Promise<void> {
+  const everything: Record<string, unknown> = await chrome.storage.local.get(null);
+  const now = nowEpochMs();
+  const priceHistory = priceHistorySchema.safeParse(everything[storageKeys.priceHistory]).data ?? {};
+  const keysToRemove: string[] = [];
+  const isFresh = (checkedAtMs: unknown, maxAgeMs: number): boolean => typeof checkedAtMs === 'number' && now - checkedAtMs < maxAgeMs;
+  for (const [key, value] of Object.entries(everything)) {
+    if (key.startsWith('v1:advert-details:')) {
+      if (!isFresh(advertDetailsSchema.safeParse(value).data?.fetchedAtMs, ADVERT_DETAILS_MAX_AGE_MS)) keysToRemove.push(key);
+    } else if (key.startsWith('v1:mot-summary:')) {
+      if (!isFresh(cachedMotSummarySchema.safeParse(value).data?.checkedAtMs, MOT_SUMMARY_MAX_AGE_MS)) keysToRemove.push(key);
+    } else if (key.startsWith('v1:registration:')) {
+      const advertId = key.slice('v1:registration:'.length);
+      if (!(advertId in priceHistory) && !(`v1:advert-details:${advertId}` in everything)) keysToRemove.push(key);
+    }
+  }
+  if (keysToRemove.length > 0) await chrome.storage.local.remove(keysToRemove);
 }

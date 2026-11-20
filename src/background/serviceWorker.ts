@@ -5,6 +5,12 @@ import { backgroundRequestSchema, type BackgroundResponse } from '../shared/mess
 import type { Registration } from '../shared/brands.ts';
 import { parseTypedRegistration } from '../shared/registration.ts';
 import { motHistoryResultsUrl } from '../mot/motLinks.ts';
+import { AUTOTRADER_ORIGIN } from '../autotrader/searchListings.ts';
+import { pruneExpiredStorage } from '../shared/storage.ts';
+
+// Tidy up cached details and MOT summaries that have expired, once per browser start or update.
+chrome.runtime.onStartup.addListener(() => void pruneExpiredStorage());
+chrome.runtime.onInstalled.addListener(() => void pruneExpiredStorage());
 
 async function fetchMotHistoryPage(registration: Registration): Promise<BackgroundResponse> {
   try {
@@ -17,7 +23,8 @@ async function fetchMotHistoryPage(registration: Registration): Promise<Backgrou
 }
 
 chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse: (response: BackgroundResponse) => void) => {
-  if (sender.id !== chrome.runtime.id) return false;
+  // Only this extension's own content script on Autotrader asks for MOT pages.
+  if (sender.id !== chrome.runtime.id || sender.origin !== AUTOTRADER_ORIGIN) return false;
   const request = backgroundRequestSchema.safeParse(message);
   const registration = request.success ? parseTypedRegistration(request.data.registration) : null;
   if (registration === null) {

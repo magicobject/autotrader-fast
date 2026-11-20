@@ -2,14 +2,16 @@
 // filterable table, with specs, price changes and MOT colours added.
 import { nowEpochMs, type AdvertId, type EpochMs, type Registration } from '../shared/brands.ts';
 import { createElement, type ElementChild } from '../shared/dom.ts';
-import { CONTENT_SCRIPT_SOURCE, type ContentScriptMessage, type PageHookMessage } from '../shared/messages.ts';
+import { CONTENT_SCRIPT_SOURCE, PAGE_HOOK_SOURCE, type ContentScriptMessage, type PageHookMessage } from '../shared/messages.ts';
 import { firstNumberIn, formatPounds, formatWholeNumber } from '../shared/numbers.ts';
-import { readPriceHistory, recordSearchVisit, writePriceHistory, type PriceHistory } from '../shared/storage.ts';
+import { readPriceHistory, recordSearchVisit, savePriceHistory, type PriceHistory } from '../shared/storage.ts';
 import { RAG_LABEL } from '../mot/motSummaryCard.ts';
 import type { MotSummary, RagLevel } from '../mot/motHistoryTypes.ts';
 import type { AdvertDetails } from './advertDetails.ts';
 import { checkMotHistory, fetchAdvert, readCachedAdvertDetails, readCachedMotSummary, readSavedRegistration } from './advertLookup.ts';
 import { parseSearchListings, type SearchListing } from './searchListings.ts';
+import { filtersPartOf } from './searchRequest.ts';
+import { csvField } from '../shared/csv.ts';
 
 const DEFAULT_PAGE_LIMIT = 30;
 const DELAY_BETWEEN_RESULT_PAGES_MS = 600;
@@ -17,6 +19,9 @@ const DELAY_BETWEEN_ADVERT_FETCHES_MS = 350;
 const SIMULTANEOUS_ADVERT_FETCHES = 2;
 const DELAY_BETWEEN_MOT_CHECKS_MS = 1200;
 const PRICE_HISTORY_SAVE_DELAY_MS = 1000;
+const LOAD_SILENCE_LIMIT_MS = 20_000;
+
+type LoadFinishedMessage = Extract<PageHookMessage, { kind: 'load-finished' }>;
 
 interface TableRow {
   readonly listing: SearchListing;
@@ -362,17 +367,26 @@ export class SearchTable {
     isMotRedHidden: false,
   };
 
-  async addResultsPage(message: Extract<PageHookMessage, { kind: 'search-results-page' }>): Promise<void> {
+  /** Results pages are handled one at a time, in arrival order, so none can overwrite another's work. */
+  private resultsQueue: Promise<void> = Promise.resolve();
+
+  addResultsPage(message: Extract<PageHookMessage, { kind: 'search-results-page' }>): Promise<void> {
+    this.resultsQueue = this.resultsQueue.then(() => this.processResultsPage(message)).catch(() => undefined);
+    return this.resultsQueue;
+  }
+
+  private async processResultsPage(message: Extract<PageHookMessage, { kind: 'search-results-page' }>): Promise<void> {
     if (message.searchKey !== this.currentSearchKey) {
       if (message.loadRunId !== undefined) return; // pages still arriving for a search we've left
       this.currentSearchKey = message.searchKey;
       this.rowsByAdvertId.clear();
       this.highestPageNumber = 0;
-      this.previousVisitMs = await recordSearchVisit(message.searchKey);
+      this.previousVisitMs = await recordSearchVisit(filtersPartOf(message.searchKey));
     }
     this.highestPageNumber = Math.max(this.highestPageNumber, message.pageNumber);
     this.priceHistory ??= await readPriceHistory();
     const seenAt = nowEpochMs();
+    const newRows: TableRow[] = [];
     for (const listing of parseSearchListings(message.listings)) {
       const seen = (this.priceHistory[listing.advertId] ??= { firstSeenMs: seenAt, lastSeenMs: seenAt, pricePoints: [] });
       const lastPrice = seen.pricePoints.at(-1)?.[1];
@@ -380,7 +394,7 @@ export class SearchTable {
       seen.lastSeenMs = seenAt;
       const firstPrice = seen.pricePoints[0]?.[1] ?? listing.priceGbp;
       const existing = this.rowsByAdvertId.get(listing.advertId);
-      this.rowsByAdvertId.set(listing.advertId, {
+      const row: TableRow = {
         listing,
         firstSeenMs: seen.firstSeenMs,
         priceChangeGbp: listing.priceGbp - firstPrice,
@@ -388,31 +402,33 @@ export class SearchTable {
         details: existing?.details ?? null,
         registration: existing?.registration ?? null,
         motSummary: existing?.motSummary ?? null,
-      });
+      };
+      this.rowsByAdvertId.set(listing.advertId, row);
+      if (existing === undefined) newRows.push(row);
     }
     this.savePriceHistorySoon();
-    await this.attachCachedExtras();
+    await this.attachCachedExtras(newRows);
     this.updateLauncher();
     this.scheduleRender();
   }
 
-  /** Adds anything already known about each car: specs, a saved reg, a recent MOT summary. */
-  private async attachCachedExtras(): Promise<void> {
+  /** Adds anything already known about each new car: specs, a saved reg, a recent MOT summary. */
+  private async attachCachedExtras(newRows: readonly TableRow[]): Promise<void> {
     await Promise.all(
-      [...this.rowsByAdvertId.values()]
-        .filter((row) => row.details === null)
-        .map(async (row) => {
-          row.details = await readCachedAdvertDetails(row.listing.advertId);
-          row.registration ??= await readSavedRegistration(row.listing.advertId);
-          if (row.registration !== null) row.motSummary = (await readCachedMotSummary(row.registration))?.summary ?? null;
-        }),
+      newRows.map(async (row) => {
+        row.details = await readCachedAdvertDetails(row.listing.advertId);
+        row.registration ??= await readSavedRegistration(row.listing.advertId);
+        if (row.registration !== null) row.motSummary = (await readCachedMotSummary(row.registration))?.summary ?? null;
+      }),
     );
   }
 
   private savePriceHistorySoon(): void {
     clearTimeout(this.priceHistorySaveTimer);
     this.priceHistorySaveTimer = setTimeout(() => {
-      if (this.priceHistory) void writePriceHistory(this.priceHistory);
+      if (this.priceHistory === null) return;
+      // Merged with a fresh read when saving, so another tab's prices are never overwritten.
+      void savePriceHistory(this.priceHistory);
     }, PRICE_HISTORY_SAVE_DELAY_MS);
   }
 
@@ -427,7 +443,7 @@ export class SearchTable {
     if (this.launcherButton === null) {
       this.launcherButton = createElement('button', {
         className: 'atf-launch',
-        title: 'Open the fast table (F)',
+        title: 'Open the fast table (Alt+Shift+F)',
         onClick: () => this.open(),
       });
       document.body.append(this.launcherButton);
@@ -441,14 +457,21 @@ export class SearchTable {
       (priceDropCount ? ` · ${priceDropCount} price drops` : '');
   }
 
+  private focusBeforeOpening: HTMLElement | null = null;
+
   open(): void {
     if (this.overlay === null) this.overlay = this.buildOverlay();
+    if (!this.overlay.hidden) return;
+    this.focusBeforeOpening = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.overlay.hidden = false;
+    this.overlay.querySelector<HTMLElement>('.atf-btn')?.focus();
     this.scheduleRender();
   }
 
   close(): void {
-    if (this.overlay) this.overlay.hidden = true;
+    if (this.overlay === null || this.overlay.hidden) return;
+    this.overlay.hidden = true;
+    (this.focusBeforeOpening ?? this.launcherButton)?.focus();
   }
 
   private buildOverlay(): HTMLDivElement {
@@ -531,6 +554,7 @@ export class SearchTable {
       toolbar,
       createElement('div', { className: 'atf-tablewrap' }, createElement('table', { className: 'atf-table' })),
     );
+    overlay.hidden = true; // open() shows it
     document.body.append(overlay);
     return overlay;
   }
@@ -596,6 +620,8 @@ export class SearchTable {
       this.sortDirection = column.firstSortDirection;
     }
     this.render();
+    // The headings are rebuilt, so put keyboard focus back on the one that was pressed.
+    this.overlay?.querySelector<HTMLButtonElement>(`button[data-column="${column.id}"]`)?.focus();
   }
 
   private render(): void {
@@ -620,6 +646,7 @@ export class SearchTable {
           { className: isSorted ? 'atf-sorted' : '', attributes: { scope: 'col', 'aria-sort': ariaSort } },
           createElement('button', {
             className: 'atf-sort',
+            attributes: { 'data-column': column.id },
             text: column.heading + arrow,
             title: column.explanation ?? 'Sort by this column',
             onClick: () => this.sortBy(column),
@@ -644,12 +671,21 @@ export class SearchTable {
     const totalOnAutotrader = firstNumberIn(document.querySelector('[data-testid="search-result-count"]')?.textContent);
     return (
       `Showing ${shownCount} of ${this.rowsByAdvertId.size} loaded` +
-      (totalOnAutotrader === null ? '' : ` (${totalOnAutotrader} on Autotrader)`)
+      (totalOnAutotrader === null ? '' : ` (${totalOnAutotrader} on Autotrader)`) +
+      (this.lastTaskOutcome === null ? '' : ` · ${this.lastTaskOutcome}`)
     );
   }
 
+  /** How the last Load / Get specs / MOT check ended, kept on show until the next one starts. */
+  private lastTaskOutcome: string | null = null;
+
   private showStatus(text: string): void {
     if (this.statusText) this.statusText.textContent = text;
+  }
+
+  private showTaskOutcome(text: string): void {
+    this.lastTaskOutcome = text;
+    this.showStatus(text);
   }
 
   async loadAllPages(pageLimit: number): Promise<void> {
@@ -661,8 +697,9 @@ export class SearchTable {
     this.activeTask = 'loading-pages';
     const loadRunId = crypto.randomUUID();
     this.showStatus(`Loading pages ${firstPageNumber}–${pageLimit}…`);
-    const finished = new Promise<Extract<PageHookMessage, { kind: 'load-finished' }>>((resolve) => {
-      this.pendingLoad = { loadRunId, resolve };
+    const finished = new Promise<LoadFinishedMessage>((resolve) => {
+      this.pendingLoad = { loadRunId, resolve, watchdog: undefined };
+      this.restartLoadWatchdog();
     });
     const request: ContentScriptMessage = {
       source: CONTENT_SCRIPT_SOURCE,
@@ -674,18 +711,19 @@ export class SearchTable {
     };
     window.postMessage(request, location.origin);
     const result = await finished;
+    clearTimeout(this.pendingLoad?.watchdog);
     this.pendingLoad = null;
     this.activeTask = null;
     switch (result.outcome) {
       case 'reached-last-page':
       case 'reached-page-limit':
-        this.showStatus(`Done · ${this.rowsByAdvertId.size} cars`);
+        this.showTaskOutcome(`Done · ${this.rowsByAdvertId.size} cars`);
         break;
       case 'no-search-captured-yet':
-        this.showStatus('Scroll the Autotrader results once, then try again.');
+        this.showTaskOutcome('Scroll the Autotrader results once, then try again.');
         break;
       case 'failed':
-        this.showStatus(`Stopped: ${result.failureReason ?? 'unknown problem'}`);
+        this.showTaskOutcome(`Stopped: ${result.failureReason ?? 'unknown problem'}`);
         break;
       default: {
         const unhandled: never = result.outcome;
@@ -697,13 +735,36 @@ export class SearchTable {
 
   private pendingLoad: {
     readonly loadRunId: string;
-    readonly resolve: (message: Extract<PageHookMessage, { kind: 'load-finished' }>) => void;
+    readonly resolve: (message: LoadFinishedMessage) => void;
+    watchdog: ReturnType<typeof setTimeout> | undefined;
   } | null = null;
+
+  /** Gives up if the page hook goes quiet, so a lost reply can't leave the table stuck. */
+  private restartLoadWatchdog(): void {
+    const pending = this.pendingLoad;
+    if (pending === null) return;
+    clearTimeout(pending.watchdog);
+    pending.watchdog = setTimeout(
+      () =>
+        pending.resolve({
+          source: PAGE_HOOK_SOURCE,
+          kind: 'load-finished',
+          loadRunId: pending.loadRunId,
+          outcome: 'failed',
+          failureReason: `no reply from the page for ${LOAD_SILENCE_LIMIT_MS / 1000} seconds`,
+        }),
+      LOAD_SILENCE_LIMIT_MS,
+    );
+  }
 
   handleLoadProgress(message: Extract<PageHookMessage, { kind: 'load-progress' | 'load-finished' }>): void {
     if (this.pendingLoad?.loadRunId !== message.loadRunId) return;
-    if (message.kind === 'load-progress') this.showStatus(`Loaded page ${message.pageNumber} · ${this.rowsByAdvertId.size} cars`);
-    else this.pendingLoad.resolve(message);
+    if (message.kind === 'load-progress') {
+      this.restartLoadWatchdog();
+      this.showStatus(`Loaded page ${message.pageNumber} · ${this.rowsByAdvertId.size} cars`);
+    } else {
+      this.pendingLoad.resolve(message);
+    }
   }
 
   private async fetchSpecsForShownCars(): Promise<void> {
@@ -729,7 +790,7 @@ export class SearchTable {
     };
     await Promise.all(Array.from({ length: SIMULTANEOUS_ADVERT_FETCHES }, fetchNextUntilDone));
     this.activeTask = null;
-    this.showStatus(`Specs done for ${doneCount} cars` + (failedCount ? `, ${failedCount} failed` : ''));
+    this.showTaskOutcome(`Specs done for ${doneCount} cars` + (failedCount ? `, ${failedCount} failed` : ''));
   }
 
   private async checkMotsForShownCars(): Promise<void> {
@@ -758,7 +819,7 @@ export class SearchTable {
       await sleep(DELAY_BETWEEN_MOT_CHECKS_MS);
     }
     this.activeTask = null;
-    this.showStatus(`MOT checked for ${waiting.length} cars`);
+    this.showTaskOutcome(`MOT checked for ${waiting.length} cars`);
   }
 
   private downloadCsv(): void {
@@ -789,13 +850,9 @@ export class SearchTable {
       ['MOT', (row) => row.motSummary?.overall ?? null],
       ['Link', (row) => row.listing.advertUrl],
     ];
-    const escapeCsv = (value: string | number | null): string => {
-      const text = value === null ? '' : String(value);
-      return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-    };
     const lines = [
       csvColumns.map(([heading]) => heading).join(','),
-      ...this.shownRows().map((row) => csvColumns.map(([, value]) => escapeCsv(value(row))).join(',')),
+      ...this.shownRows().map((row) => csvColumns.map(([, value]) => csvField(value(row))).join(',')),
     ];
     const downloadLink = createElement('a', {
       attributes: { href: URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' })), download: 'autotrader-search.csv' },

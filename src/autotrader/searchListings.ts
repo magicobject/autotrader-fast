@@ -61,10 +61,26 @@ function badgeText(listing: RawListing, badgeType: string): string | null {
   return listing.badges?.find((badge) => badge.type === badgeType)?.displayText ?? null;
 }
 
-/** The advert's address without the search-tracking query string. */
+/** The advert's address on Autotrader, without the search-tracking query string. */
 export function advertUrlFor(fpaLink: string | null | undefined, advertId: AdvertId): string {
-  const url = new URL(fpaLink ?? `/car-details/${advertId}`, AUTOTRADER_ORIGIN);
-  return url.origin + url.pathname;
+  try {
+    const url = new URL(fpaLink ?? '', AUTOTRADER_ORIGIN);
+    if (url.origin === AUTOTRADER_ORIGIN) return url.origin + url.pathname;
+  } catch {
+    // fall through to the plain advert address
+  }
+  return `${AUTOTRADER_ORIGIN}/car-details/${advertId}`;
+}
+
+/** Thumbnails come from Autotrader's image server over HTTPS; anything else is dropped. */
+export function thumbnailUrlFor(imageTemplate: string | undefined): string | null {
+  if (imageTemplate === undefined) return null;
+  try {
+    const url = new URL(imageTemplate.replace('{resize}', THUMBNAIL_WIDTH));
+    return url.protocol === 'https:' && url.hostname.endsWith('.atcdn.co.uk') ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 function toSearchListing(listing: RawListing): SearchListing | null {
@@ -93,7 +109,7 @@ function toSearchListing(listing: RawListing): SearchListing | null {
     otherBadges: badges
       .filter((badge) => !/^(PI_|MILEAGE|REGISTERED_YEAR)/.test(badge.type))
       .flatMap((badge) => (badge.displayText ? [badge.displayText] : [])),
-    thumbnailUrl: listing.images?.[0]?.replace('{resize}', THUMBNAIL_WIDTH) ?? null,
+    thumbnailUrl: thumbnailUrlFor(listing.images?.[0]),
     advertUrl: advertUrlFor(listing.fpaLink, advertId),
   };
 }

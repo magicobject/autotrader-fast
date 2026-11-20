@@ -42,6 +42,24 @@ describe('readMotHistoryPage', () => {
     expect(history.tests[2]?.defects[0]?.severity).toBe('advisory');
   });
 
+  it('puts a same-day fail before its retest, so the pass counts as the latest test', () => {
+    const reading = parse(
+      motHistoryPageHtml({
+        tests: [
+          { date: '3 February 2024', result: 'PASS', odometer: '158,065 miles', expiry: '2 February 2025' },
+          {
+            date: '3 February 2024',
+            result: 'FAIL',
+            odometer: '158,065 miles',
+            defects: { major: ['Rear Shock absorber leaking (5.3.2)'] },
+          },
+          { date: '8 February 2023', result: 'PASS', odometer: '154,607 miles', expiry: '7 February 2024' },
+        ],
+      }),
+    );
+    expect(reading.kind === 'found' && reading.history.tests.map((test) => test.outcome)).toEqual(['pass', 'fail', 'pass']);
+  });
+
   it('ignores the per-test V5C log-book boxes', () => {
     const reading = parse(motHistoryPageHtml({ tests: [{ date: '4 February 2026', result: 'PASS', odometer: '1,000 miles' }] }));
     expect(reading.kind === 'found' && reading.history.tests[0]?.defects).toEqual([]);
