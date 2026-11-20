@@ -1,19 +1,7 @@
-// Getting an advert's details (from cache, the current page, or by fetching its page) and
-// checking a registration's MOT history through the background service worker.
+// Getting an advert's details: from cache, the current page, or by fetching its page.
 import { nowEpochMs, type AdvertId, type Registration } from '../shared/brands.ts';
-import { backgroundResponseSchema, type BackgroundRequest } from '../shared/messages.ts';
 import { findRegistrationInDescription } from '../shared/registration.ts';
-import {
-  readAdvertDetails,
-  readMotSummary,
-  readRegistration,
-  writeAdvertDetails,
-  writeMotSummary,
-  writeRegistration,
-} from '../shared/storage.ts';
-import { analyseMotHistory } from '../mot/motHistoryAnalysis.ts';
-import { readMotHistoryPage } from '../mot/motHistoryParser.ts';
-import type { MotSummary } from '../mot/motHistoryTypes.ts';
+import { readAdvertDetails, readMotSummary, readRegistration, writeAdvertDetails, writeRegistration } from '../shared/storage.ts';
 import { extractAdvertPageData, readAdvertPageData, type AdvertDetails } from './advertDetails.ts';
 
 export interface AdvertLookupResult {
@@ -47,31 +35,5 @@ export async function fetchAdvert(advertId: AdvertId): Promise<AdvertLookupResul
 }
 
 export { readAdvertDetails as readCachedAdvertDetails };
-
-export interface MotCheckRequest {
-  readonly registration: Registration;
-  readonly advertisedMileage: number | null;
-  readonly advertisedMake: string | null;
-  /** Ignore a cached summary and fetch the history again. */
-  readonly isRefreshForced: boolean;
-}
-
-export async function checkMotHistory(request: MotCheckRequest): Promise<MotSummary> {
-  if (!request.isRefreshForced) {
-    const cached = await readMotSummary(request.registration);
-    if (cached && cached.advertisedMileage === request.advertisedMileage) return cached.summary;
-  }
-  const message: BackgroundRequest = { kind: 'fetch-mot-history-page', registration: request.registration };
-  const response = backgroundResponseSchema.parse(await chrome.runtime.sendMessage(message));
-  if (response.kind === 'failed') throw new Error(response.reason);
-  const reading = readMotHistoryPage(new DOMParser().parseFromString(response.html, 'text/html'));
-  if (reading.kind === 'not-found') throw new Error(reading.message);
-  const summary = analyseMotHistory(reading.history, {
-    advertisedMileage: request.advertisedMileage,
-    advertisedMake: request.advertisedMake,
-  });
-  await writeMotSummary(request.registration, { checkedAtMs: nowEpochMs(), advertisedMileage: request.advertisedMileage, summary });
-  return summary;
-}
 
 export { readMotSummary as readCachedMotSummary, readRegistration as readSavedRegistration, writeRegistration as saveRegistration };

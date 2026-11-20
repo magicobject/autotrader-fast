@@ -53,17 +53,3 @@ export const contentScriptMessageSchema = z.discriminatedUnion('kind', [
   }),
 ]);
 export type ContentScriptMessage = z.infer<typeof contentScriptMessageSchema>;
-
-// ---- content script → background service worker (chrome.runtime) -------------------------------
-
-export const backgroundRequestSchema = z.object({
-  kind: z.literal('fetch-mot-history-page'),
-  registration: z.string().check(z.regex(/^[A-Z0-9]{2,7}$/)),
-});
-export type BackgroundRequest = z.infer<typeof backgroundRequestSchema>;
-
-export const backgroundResponseSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('mot-history-page'), html: z.string() }),
-  z.object({ kind: z.literal('failed'), reason: z.string() }),
-]);
-export type BackgroundResponse = z.infer<typeof backgroundResponseSchema>;

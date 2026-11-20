@@ -50,11 +50,12 @@ let lastPathname: string | null = null;
 function followAddressChanges(): void {
   // Cheap when nothing changed; puts the bar back if the page redrew.
   quickSortBar.update().catch((error: unknown) => console.warn('[Autotrader Fast] quick sort', error));
+  // Also cheap when already shown; puts the section back if the page redrew.
+  const advertId = advertIdFromPath(location.pathname);
+  if (advertId !== null) advertPanel.showFor(advertId).catch((error: unknown) => console.warn('[Autotrader Fast] advert panel', error));
   if (location.pathname === lastPathname) return;
   lastPathname = location.pathname;
-  const advertId = advertIdFromPath(location.pathname);
   if (advertId === null) advertPanel.forget();
-  else void advertPanel.showFor(advertId);
   searchTable.updateLauncher();
 }
 

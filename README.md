@@ -6,7 +6,8 @@ A Chrome extension for Greg's own car hunting on [autotrader.co.uk](https://www.
   Best match), plus an optional default order applied to every search that doesn't choose one.
 - **Fast table** on search results: every car in the search in one sortable, filterable table, with
   performance, running costs and history filled in, price drops tracked and new cars marked.
-- **At a glance** panel on each advert, so there's no need to open "View all spec and features".
+- **At a glance** section on each advert, in the page above Autotrader's Overview, so there's no need to
+  open "View all spec and features".
 - **MOT colours**: a Red/Amber/Green summary of the car's public MOT history from GOV.UK, with a dated
   reason for every concern.
 
@@ -35,7 +36,7 @@ the `dist` folder. After pulling changes, run `npm run build` again and press th
 | Page hook         | `src/autotrader/pageHook.ts`                                           | Autotrader's own page world, from `document_start` |
 | Content script    | `src/autotrader/contentScript.ts` → `searchTable.ts`, `advertPanel.ts` | Every Autotrader page (isolated world)             |
 | GOV.UK summary    | `src/mot/motResultsPage.ts`                                            | GOV.UK MOT results pages                           |
-| Background worker | `src/background/serviceWorker.ts`                                      | Extension service worker                           |
+| Background worker | `src/background/serviceWorker.ts` (help page, cache tidying)           | Extension service worker                           |
 
 - **Search data.** Autotrader's results page loads listings from its own gateway
   (`/at-gateway?opname=SearchResultsListingsGridQuery`). The page hook wraps `window.fetch`, passes each
@@ -55,14 +56,21 @@ the `dist` folder. After pulling changes, run `npm run build` again and press th
   needs no redirect: it is Autotrader's own order.
 - **Registration.** Autotrader's data never includes the reg. `findRegistrationInDescription` looks for one
   in the seller's description; otherwise the person types it.
-- **MOT history.** The background worker fetches
+- **MOT history.** GOV.UK's MOT service sits behind bot protection (Imperva): a request that isn't from a
+  person's own browser tab gets a "Pardon Our Interruption" page, so the extension never fetches it and
+  must not try to get round that. **Check on GOV.UK** opens
   `https://www.check-mot.service.gov.uk/results?registration=<REG>&checkRecalls=true` (the address the
-  GOV.UK form submits to, so no form is filled in). `motHistoryParser.ts` reads it by its `data-test-id`
-  attributes; `motHistoryAnalysis.ts` applies the rules below.
+  GOV.UK form submits to) in a new tab. The content script there (`motResultsPage.ts`) reads the page by its
+  `data-test-id` attributes (`motHistoryParser.ts`), applies the rules below (`motHistoryAnalysis.ts`),
+  shows the card and saves the summary; the advert's section is listening (`onMotSummarySaved`) and shows
+  it too. For automatic or bulk MOT checks, the sanctioned route is DVSA's MOT History API (free, needs
+  an API key); not used yet.
+- **At a glance** is a `<details>` section inserted before Autotrader's `overview` section (`placeForPanel`),
+  re-inserted if Autotrader's page redraws it, and floating only if that layout isn't found.
 - **Messages** between the parts are discriminated unions validated with zod (`src/shared/messages.ts`);
   window messages can come from any script on the page, so nothing is trusted unvalidated.
 - **Storage** (`src/shared/storage.ts`) is `chrome.storage.local` only, with versioned keys and a schema
-  check on every read: advert details for 3 days, MOT summaries for 12 hours (expired ones are removed
+  check on every read: advert details for 3 days, MOT summaries for 30 days (expired ones are removed
   when the browser starts), prices until a car hasn't been seen for 120 days. Typed registrations are kept.
 
 ## The MOT colours
@@ -97,8 +105,7 @@ The pre-push hook runs all three. `test:e2e` runs in Playwright's own Chromium (
 Playwright version as echo, so browsers already downloaded on Greg's machine are reused; otherwise run
 `npx playwright install chromium` once). Branded Google Chrome can't be used: since version 137 it refuses
 to load unpacked extensions from the command line. To use another Chromium-based browser, set
-`CHROME_PATH`. It serves the fixture pages through Playwright routes, including the background worker's
-GOV.UK request. Tests use made-up data shaped like the live sites (see `test/fixtures/`);
+`CHROME_PATH`. It serves the fixture pages, including GOV.UK's, through Playwright routes. Tests use made-up data shaped like the live sites (see `test/fixtures/`);
 nothing in the test suite contacts Autotrader or GOV.UK.
 
 **After a change that touches the pages' data**, check by hand on the live sites with the built extension:
