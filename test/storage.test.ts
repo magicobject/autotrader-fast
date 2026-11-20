@@ -52,7 +52,7 @@ describe('price history', () => {
 });
 
 describe('pruneExpiredStorage', () => {
-  it('removes expired MOT summaries and registrations for forgotten adverts, and keeps the rest', async () => {
+  it('removes expired MOT summaries and keeps everything else, including typed registrations', async () => {
     const stored = installChromeStorageStub();
     const summary = { overall: 'green', findings: [], testCount: 0, failedTestCount: 0, registrationShown: 'ZZ99 ZZZ', makeAndModel: 'X' };
     stored.set('v1:mot-summary:OLD1ABC', { checkedAtMs: at(2), advertisedMileage: null, summary });
@@ -66,6 +66,7 @@ describe('pruneExpiredStorage', () => {
       'v1:mot-summary:NEW1ABC',
       'v1:panel-something-else',
       'v1:price-history',
+      'v1:registration:111111',
       'v1:registration:222222',
     ]);
   });

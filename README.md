@@ -42,7 +42,9 @@ the `dist` folder. After pulling changes, run `npm run build` again and press th
   cars or the limit is reached. `searchRequest.ts` and `searchListings.ts` validate that data.
 - **Advert data.** Advert pages embed their data as `window.__staticRouterHydrationData`. `advertDetails.ts`
   extracts and validates it, from the open page or by fetching `/car-details/<id>` (two at a time,
-  0.35 s apart).
+  0.35 s apart). The data is only used when its `advertData.id` matches the advert asked for (after
+  in-app navigation the open page can still hold the previous advert's data); if Autotrader ever stops
+  sending that id, every advert will fail to load and `lookUpAdvertFromHtml` is where to change it.
 - **Registration.** Autotrader's data never includes the reg. `findRegistrationInDescription` looks for one
   in the seller's description; otherwise the person types it.
 - **MOT history.** The background worker fetches
@@ -52,8 +54,8 @@ the `dist` folder. After pulling changes, run `npm run build` again and press th
 - **Messages** between the parts are discriminated unions validated with zod (`src/shared/messages.ts`);
   window messages can come from any script on the page, so nothing is trusted unvalidated.
 - **Storage** (`src/shared/storage.ts`) is `chrome.storage.local` only, with versioned keys and a schema
-  check on every read: advert details for 3 days, MOT summaries for 12 hours, prices until a car hasn't
-  been seen for 120 days.
+  check on every read: advert details for 3 days, MOT summaries for 12 hours (expired ones are removed
+  when the browser starts), prices until a car hasn't been seen for 120 days. Typed registrations are kept.
 
 ## The MOT colours
 

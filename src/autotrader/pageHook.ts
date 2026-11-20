@@ -47,6 +47,7 @@ function installPageHook(): void {
   const originalFetch = window.fetch.bind(window);
   const replayBuffer: PageHookMessage[] = [];
   let lastSearchRequest: CapturedSearchRequest | null = null;
+  let currentLoadRunId: string | null = null;
 
   const post = (message: PageHookMessage): void => {
     if (message.kind === 'search-results-page') {
@@ -108,7 +109,9 @@ function installPageHook(): void {
 
     const template = lastSearchRequest;
     if (template === null) return finish('no-search-captured-yet');
+    currentLoadRunId = request.loadRunId; // a newer request stops this one at its next page
     for (let pageNumber = request.firstPageNumber; pageNumber <= request.lastPageNumber; pageNumber++) {
+      if (currentLoadRunId !== request.loadRunId) return;
       const rawOperations = withPageNumber(template.rawOperations, pageNumber);
       const operation = findSearchOperation(rawOperations);
       if (operation === null) return finish('failed', 'The captured search could not be read.');

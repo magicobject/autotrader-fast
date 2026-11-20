@@ -137,13 +137,12 @@ export async function writeAdvertPanelCollapsed(isCollapsed: boolean): Promise<v
 // ---- tidying up -----------------------------------------------------------------------------
 
 /**
- * Removes advert details and MOT summaries past their age limit, and saved registrations for adverts
- * we no longer remember at all (not seen for FORGET_UNSEEN_ADVERTS_AFTER_MS and no cached details).
+ * Removes advert details and MOT summaries past their age limit. Registrations are kept: they are
+ * tiny, and Greg may have typed one in from the photos.
  */
 export async function pruneExpiredStorage(): Promise<void> {
   const everything: Record<string, unknown> = await chrome.storage.local.get(null);
   const now = nowEpochMs();
-  const priceHistory = priceHistorySchema.safeParse(everything[storageKeys.priceHistory]).data ?? {};
   const keysToRemove: string[] = [];
   const isFresh = (checkedAtMs: unknown, maxAgeMs: number): boolean => typeof checkedAtMs === 'number' && now - checkedAtMs < maxAgeMs;
   for (const [key, value] of Object.entries(everything)) {
@@ -151,9 +150,6 @@ export async function pruneExpiredStorage(): Promise<void> {
       if (!isFresh(advertDetailsSchema.safeParse(value).data?.fetchedAtMs, ADVERT_DETAILS_MAX_AGE_MS)) keysToRemove.push(key);
     } else if (key.startsWith('v1:mot-summary:')) {
       if (!isFresh(cachedMotSummarySchema.safeParse(value).data?.checkedAtMs, MOT_SUMMARY_MAX_AGE_MS)) keysToRemove.push(key);
-    } else if (key.startsWith('v1:registration:')) {
-      const advertId = key.slice('v1:registration:'.length);
-      if (!(advertId in priceHistory) && !(`v1:advert-details:${advertId}` in everything)) keysToRemove.push(key);
     }
   }
   if (keysToRemove.length > 0) await chrome.storage.local.remove(keysToRemove);

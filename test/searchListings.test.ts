@@ -65,6 +65,15 @@ describe('parseSearchListings', () => {
     expect(listing?.otherBadges).toEqual([]);
   });
 
+  it('links to the advert when Autotrader gives no link, or a link to somewhere else on the site', () => {
+    expect(parseSearchListings([searchListing({ fpaLink: null })])[0]?.advertUrl).toBe(
+      'https://www.autotrader.co.uk/car-details/202611177980608',
+    );
+    expect(parseSearchListings([searchListing({ fpaLink: '/' })])[0]?.advertUrl).toBe(
+      'https://www.autotrader.co.uk/car-details/202611177980608',
+    );
+  });
+
   it('only links to Autotrader and only shows Autotrader images', () => {
     const [listing] = parseSearchListings([
       searchListing({ fpaLink: 'https://evil.example/car-details/1', images: ['javascript:alert(1)'] }),

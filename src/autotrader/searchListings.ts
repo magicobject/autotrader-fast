@@ -64,8 +64,8 @@ function badgeText(listing: RawListing, badgeType: string): string | null {
 /** The advert's address on Autotrader, without the search-tracking query string. */
 export function advertUrlFor(fpaLink: string | null | undefined, advertId: AdvertId): string {
   try {
-    const url = new URL(fpaLink ?? '', AUTOTRADER_ORIGIN);
-    if (url.origin === AUTOTRADER_ORIGIN) return url.origin + url.pathname;
+    const url = new URL(fpaLink ?? `/car-details/${advertId}`, AUTOTRADER_ORIGIN);
+    if (url.origin === AUTOTRADER_ORIGIN && url.pathname.startsWith('/car-details/')) return url.origin + url.pathname;
   } catch {
     // fall through to the plain advert address
   }
