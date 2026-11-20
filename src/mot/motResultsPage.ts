@@ -23,8 +23,13 @@ async function addSummaryToResultsPage(): Promise<void> {
   card.classList.add('atf-on-gov');
   (document.querySelector('main') ?? document.body).prepend(card);
 
-  const registration = parseTypedRegistration(parameters.get('registration') ?? reading.history.registrationShown);
-  if (registration !== null) await writeMotSummary(registration, { checkedAtMs: nowEpochMs(), advertisedMileage, summary });
+  // File the summary under the registration this page actually shows (it must match the address, if given).
+  const shown = parseTypedRegistration(reading.history.registrationShown);
+  const asked = parameters.get('registration');
+  const askedFor = asked === null ? null : parseTypedRegistration(asked);
+  if (shown !== null && (asked === null || askedFor === shown)) {
+    await writeMotSummary(shown, { checkedAtMs: nowEpochMs(), advertisedMileage, summary });
+  }
 }
 
 addSummaryToResultsPage().catch((error: unknown) => console.warn('[Autotrader Fast] MOT summary', error));

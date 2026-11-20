@@ -4,9 +4,16 @@ import { vi } from 'vitest';
 
 type ChangeListener = (changes: Record<string, { oldValue?: unknown; newValue?: unknown }>, areaName: string) => void;
 
+let listeners = new Set<ChangeListener>();
+
+/** How many storage change listeners are registered (to check nothing is left listening). */
+export function listenerCount(): number {
+  return listeners.size;
+}
+
 export function installChromeStorageStub(): Map<string, unknown> {
   const stored = new Map<string, unknown>();
-  const listeners = new Set<ChangeListener>();
+  listeners = new Set<ChangeListener>();
   const announce = (changes: Record<string, { oldValue?: unknown; newValue?: unknown }>): void => {
     for (const listener of listeners) listener(changes, 'local');
   };

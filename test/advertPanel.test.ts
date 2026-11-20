@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdvertPanel, advertIdFromPath } from '../src/autotrader/advertPanel.ts';
 import type { AdvertId } from '../src/shared/brands.ts';
 import { advertPageData, advertPageHtml } from './fixtures/autotraderData.ts';
-import { installChromeStorageStub } from './support/chromeStorageStub.ts';
+import { installChromeStorageStub, listenerCount } from './support/chromeStorageStub.ts';
 
 const summary = {
   overall: 'amber',
@@ -79,12 +79,14 @@ describe('AdvertPanel', () => {
     expect(opened).toHaveBeenCalledWith(
       'https://www.check-mot.service.gov.uk/results?registration=AB12CDE&checkRecalls=true&atfMiles=26760&atfMake=Mazda',
       '_blank',
-      'noopener',
+      'noopener,noreferrer',
     );
     await new Promise((resolve) => setTimeout(resolve, 0));
     // what the GOV.UK tab's content script writes:
     await chrome.storage.local.set({ 'v1:mot-summary:AB12CDE': { checkedAtMs: Date.now(), advertisedMileage: 26760, summary } });
     expect(document.querySelector('.atf-mot-out')?.textContent).toContain('AMBER AB12 CDE MAZDA MX-5');
+    // ...and the colour shows in the heading, which stays visible when the section is folded
+    expect(document.querySelector('.atf-panel-head .atf-panel-mot')?.textContent).toBe('MOT AMBER');
   });
 
   it('shows a summary saved earlier straight away', async () => {
@@ -93,6 +95,27 @@ describe('AdvertPanel', () => {
     await new AdvertPanel().showFor(thisAdvert());
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(document.querySelector('.atf-mot-out')?.textContent).toContain('Corrosion advisory');
+  });
+
+  it('says when a saved summary was checked against a different advertised mileage', async () => {
+    stored.set('v1:registration:202607314693714', 'AB12CDE');
+    stored.set('v1:mot-summary:AB12CDE', { checkedAtMs: Date.now(), advertisedMileage: 20000, summary });
+    await new AdvertPanel().showFor(thisAdvert());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.querySelector('.atf-mot-out')?.textContent).toContain(
+      'Its mileage check used 20,000 miles; this advert says 26,760, so check again.',
+    );
+  });
+
+  it('stops listening for GOV.UK summaries when you leave the advert', async () => {
+    stored.set('v1:registration:202607314693714', 'AB12CDE');
+    const advertPanel = new AdvertPanel();
+    await advertPanel.showFor(thisAdvert());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    advertPanel.forget();
+    await chrome.storage.local.set({ 'v1:mot-summary:AB12CDE': { checkedAtMs: Date.now(), advertisedMileage: 26760, summary } });
+    expect(document.querySelector('.atf-panel')).toBeNull();
+    expect(listenerCount()).toBe(0);
   });
 
   it('floats only when the page layout isn’t recognised', async () => {

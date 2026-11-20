@@ -7,21 +7,23 @@ import { motHistoryPageHtml } from '../fixtures/motHistoryPage.ts';
 
 const EXTENSION_FOLDER = resolve('dist');
 
-const motPage = motHistoryPageHtml({
-  makeAndModel: 'MAZDA MX-5',
-  motDue: '7 February 2027',
-  tests: [
-    { date: '4 February 2026', result: 'PASS', odometer: '30,000 miles', expiry: '7 February 2027' },
-    {
-      date: '3 February 2025',
-      result: 'PASS',
-      odometer: '20,000 miles',
-      expiry: '6 February 2026',
-      defects: { advisory: ['Offside Sill corroded (5.3.3)'] },
-    },
-    { date: '2 February 2023', result: 'PASS', odometer: '10,000 miles', expiry: '1 February 2024' },
-  ],
-});
+const motPage = (registrationShown: string): string =>
+  motHistoryPageHtml({
+    registrationShown,
+    makeAndModel: 'MAZDA MX-5',
+    motDue: '7 February 2027',
+    tests: [
+      { date: '4 February 2026', result: 'PASS', odometer: '30,000 miles', expiry: '7 February 2027' },
+      {
+        date: '3 February 2025',
+        result: 'PASS',
+        odometer: '20,000 miles',
+        expiry: '6 February 2026',
+        defects: { advisory: ['Offside Sill corroded (5.3.3)'] },
+      },
+      { date: '2 February 2023', result: 'PASS', odometer: '10,000 miles', expiry: '1 February 2024' },
+    ],
+  });
 
 /** A results page that loads its listings the way Autotrader does: a POST to its gateway. */
 const searchPage = `<!doctype html><html lang="en"><head><title>Search</title></head><body>
@@ -46,7 +48,11 @@ test.beforeAll(async () => {
     headless: true,
     args: [`--disable-extensions-except=${EXTENSION_FOLDER}`, `--load-extension=${EXTENSION_FOLDER}`],
   });
-  await context.route('https://www.check-mot.service.gov.uk/**', (route) => route.fulfill({ contentType: 'text/html', body: motPage }));
+  // GOV.UK shows the registration that was asked for, spaced as on a plate.
+  await context.route('https://www.check-mot.service.gov.uk/**', (route) => {
+    const asked = new URL(route.request().url()).searchParams.get('registration') ?? 'ZZ99ZZZ';
+    return route.fulfill({ contentType: 'text/html', body: motPage(`${asked.slice(0, 4)} ${asked.slice(4)}`) });
+  });
   await context.route('https://www.autotrader.co.uk/**', async (route) => {
     const url = new URL(route.request().url());
     if (url.pathname === '/at-gateway') {

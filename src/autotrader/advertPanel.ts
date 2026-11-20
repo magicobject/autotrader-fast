@@ -20,7 +20,7 @@ import {
   type CachedMotSummary,
 } from '../shared/storage.ts';
 import { motHistoryLinkFromAdvert } from '../mot/motLinks.ts';
-import { createMotSummaryCard } from '../mot/motSummaryCard.ts';
+import { RAG_LABEL, createMotSummaryCard } from '../mot/motSummaryCard.ts';
 import type { AdvertDetails } from './advertDetails.ts';
 import { fetchAdvert, lookUpAdvertFromHtml } from './advertLookup.ts';
 
@@ -59,9 +59,16 @@ interface MotSection {
   readonly element: HTMLElement;
   readonly registrationInput: HTMLInputElement;
   readonly showSummaryFor: (registration: Registration) => Promise<void>;
+  /** Stops listening for summaries saved from GOV.UK tabs. */
+  readonly dispose: () => void;
 }
 
-function buildMotSection(advertId: AdvertId, details: AdvertDetails, isStillShowing: () => boolean): MotSection {
+function buildMotSection(
+  advertId: AdvertId,
+  details: AdvertDetails,
+  isStillShowing: () => boolean,
+  showOverallInHeading: (summary: CachedMotSummary['summary']) => void,
+): MotSection {
   const registrationInput = createElement('input', {
     className: 'atf-in atf-reg',
     attributes: { placeholder: 'REG', maxlength: '8', 'aria-label': 'Registration number', autocomplete: 'off', spellcheck: 'false' },
@@ -70,11 +77,17 @@ function buildMotSection(advertId: AdvertId, details: AdvertDetails, isStillShow
   let stopWatching: (() => void) | null = null;
 
   const showCached = (registration: Registration, cached: CachedMotSummary): void => {
+    showOverallInHeading(cached.summary);
+    // A summary from an earlier check was compared with the mileage advertised then.
+    const mileageNote =
+      cached.advertisedMileage !== null && details.mileage !== null && cached.advertisedMileage !== details.mileage
+        ? ` Its mileage check used ${formatWholeNumber(cached.advertisedMileage)} miles; this advert says ${formatWholeNumber(details.mileage)}, so check again.`
+        : '';
     result.replaceChildren(
       createMotSummaryCard(cached.summary),
       createElement(
         'p',
-        { className: 'atf-muted', text: `From GOV.UK on ${formatShortDate(new Date(cached.checkedAtMs))}. ` },
+        { className: 'atf-muted', text: `From GOV.UK on ${formatShortDate(new Date(cached.checkedAtMs))}.${mileageNote} ` },
         createElement('a', {
           text: 'Open it again ↗',
           attributes: { href: motHistoryLinkFromAdvert(registration, details.mileage, details.make), target: '_blank', rel: 'noopener' },
@@ -101,7 +114,7 @@ function buildMotSection(advertId: AdvertId, details: AdvertDetails, isStillShow
     }
     registrationInput.value = registration;
     // Opened straight from the click, so the browser treats it as the person's own navigation.
-    window.open(motHistoryLinkFromAdvert(registration, details.mileage, details.make), '_blank', 'noopener');
+    window.open(motHistoryLinkFromAdvert(registration, details.mileage, details.make), '_blank', 'noopener,noreferrer');
     result.replaceChildren(
       createElement('span', {
         className: 'atf-muted',
@@ -129,12 +142,17 @@ function buildMotSection(advertId: AdvertId, details: AdvertDetails, isStillShow
     ),
     result,
   );
-  return { element, registrationInput, showSummaryFor };
+  const dispose = (): void => {
+    stopWatching?.();
+    stopWatching = null;
+  };
+  return { element, registrationInput, showSummaryFor, dispose };
 }
 
 export class AdvertPanel {
   private shownForAdvertId: AdvertId | null = null;
   private panel: HTMLElement | null = null;
+  private stopMotWatch: (() => void) | null = null;
 
   /** Called whenever the address may have changed; also puts the section back if the page redrew. */
   async showFor(advertId: AdvertId): Promise<void> {
@@ -147,6 +165,7 @@ export class AdvertPanel {
     const isStillShowing = (): boolean => this.shownForAdvertId === advertId; // the person may have moved on
 
     const body = createElement('div', { className: 'atf-panel-body', text: 'Loading…' });
+    const headingMotStatus = createElement('span', { className: 'atf-panel-mot', attributes: { 'aria-live': 'polite' } });
     const panel = createElement(
       'details',
       { className: 'atf-panel' },
@@ -160,6 +179,8 @@ export class AdvertPanel {
           createElement('span', { text: '⚡ ', attributes: { 'aria-hidden': 'true' } }),
           'At a glance',
         ),
+        // The MOT colour stays visible (and is announced) even when the section is folded up.
+        headingMotStatus,
       ),
       body,
     );
@@ -179,7 +200,12 @@ export class AdvertPanel {
     if (!isStillShowing()) return;
     const { details: advert, registrationFromDescription } = lookup;
 
-    const mot = buildMotSection(advertId, advert, isStillShowing);
+    const mot = buildMotSection(advertId, advert, isStillShowing, (summary) => {
+      headingMotStatus.replaceChildren(
+        createElement('span', { className: `atf-rag atf-rag-${summary.overall}`, text: `MOT ${RAG_LABEL[summary.overall]}` }),
+      );
+    });
+    this.stopMotWatch = mot.dispose;
     const priceHistory = (await readPriceHistory())[advertId];
     const pricePoints = priceHistory && priceHistory.pricePoints.length > 1 ? priceHistory.pricePoints : null;
 
@@ -260,6 +286,8 @@ export class AdvertPanel {
   }
 
   remove(): void {
+    this.stopMotWatch?.();
+    this.stopMotWatch = null;
     this.panel?.remove();
     this.panel = null;
   }
